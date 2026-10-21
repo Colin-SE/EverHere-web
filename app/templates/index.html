@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff9f3"><meta name="description" content="记录过去、此刻与未来，收藏属于你的人生故事。">
+  <title>我的生活 · 人生相册</title>
+  <link rel="icon" href="{{ url_for('static', filename='images/mobile/app_icon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/native.css') }}">
+  <script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parity.css') }}">
+</head>
+<body data-current-view="home">
+  <a href="#main" class="skip-link">跳转至内容</a>
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="/"><img src="{{ url_for('static', filename='images/mobile/app_icon.svg') }}" alt=""><span>人生相册<small>我的私人生命档案</small></span></a>
+    <div class="workspace-label">过去 · 现在 · 未来 <i></i></div>
+    <nav class="main-nav" aria-label="主要导航">
+      <button data-view="home" class="nav-item active"><i data-icon="home"></i><span>首页 · 我的生活</span><i class="nav-dot"></i></button>
+      <button data-view="timeline" class="nav-item"><i data-icon="list"></i><span>人生记录</span></button>
+      <button data-view="calendar" class="nav-item"><i data-icon="calendar"></i><span>日历回看</span></button>
+      <button data-view="places" class="nav-item"><i data-icon="globe"></i><span>地点</span></button>
+      <button data-view="upcoming" class="nav-item"><i data-icon="sun"></i><span>即将到来</span></button>
+      <div class="nav-label">人生的连接</div>
+      <button data-view="entities" class="nav-item"><i data-icon="people"></i><span>人物</span></button>
+      <button data-view="all" class="nav-item"><i data-icon="list"></i><span>全部记录</span></button>
+      <button data-view="drafts" class="nav-item"><i data-icon="edit"></i><span>本机草稿</span></button>
+      <button data-view="trash" class="nav-item"><i data-icon="trash"></i><span>回收站</span></button>
+      <button data-view="appearance" class="nav-item"><i data-icon="sun"></i><span>外观</span></button>
+      <div class="nav-divider"></div>
+      <button data-view="mine" class="nav-item"><i data-icon="people"></i><span>我的</span></button>
+      <button data-view="archive" class="nav-item"><i data-icon="archive"></i><span>数据管理</span></button>
+    </nav>
+    <div class="sidebar-bottom"><div class="little-quote"><i data-icon="sprout"></i><p>过去，现在和未来，<br>都是我的人生。</p></div><button class="profile" id="profile-button" aria-label="打开我的页面"><span class="avatar">{{ user.name[0] }}</span><span><b>{{ user.name }}</b><small>资料仅自己可见</small></span><i data-icon="chevron"></i></button></div>
+  </aside>
+  <div id="sidebar-shade" class="sidebar-shade" hidden></div>
+  <div class="app-shell">
+    <header class="topbar"><div class="breadcrumb"><button class="icon-button mobile-menu" id="menu-button" aria-label="打开导航"><i data-icon="menu"></i></button><span>我的私人空间</span><span class="separator">/</span><b id="breadcrumb">我的生活</b></div><div class="top-actions"><span class="private-badge"><i data-icon="shield"></i>仅自己可见</span><button class="icon-button" id="settings-button" aria-label="打开我的页面"><i data-icon="settings"></i></button><span class="small-avatar">{{ user.name[0] }}</span></div></header>
+    <main id="main" class="main-content" tabindex="-1">
+      <section class="page-heading"><div><div class="eyebrow" id="today-label"></div><h1 id="page-title">我的生活</h1><p id="page-description">过去，现在和未来，都是我的人生。</p></div><button class="button primary" id="new-record"><i data-icon="plus"></i>新建人生记录</button></section>
+      <section id="record-tools" class="record-tools"><div class="view-tabs" role="group" aria-label="记录视图"><button data-switch="timeline" class="active"><i data-icon="list"></i>时间轴</button><button data-switch="calendar"><i data-icon="calendar"></i>日历</button><button data-switch="places"><i data-icon="globe"></i>足迹</button></div><div class="record-tool-actions"><label class="search-box"><i data-icon="search"></i><input id="search" type="search" placeholder="找回一段记忆…" aria-label="搜索记录、地点、标签或心情"></label><button class="button subtle small" id="filter-toggle" aria-expanded="false"><i data-icon="filter"></i>筛选</button></div></section>
+      <form id="filters" class="filter-panel" hidden><label>记录状态<select name="state"><option value="">所有状态</option><option value="occurred">已发生</option><option value="ongoing">进行中</option><option value="planned">计划中</option><option value="recurring">周期性</option></select></label><label>进展<select name="progress"><option value="">全部进展</option><option value="unfinished">未完成</option><option value="planned">待开始</option><option value="started">已开始</option><option value="completed">已完成</option><option value="cancelled">已取消</option></select></label><label>日期精度<select name="precision"><option value="">全部精度</option><option value="day">日</option><option value="month">月</option><option value="year">年</option><option value="range">范围</option><option value="unknown">未知</option></select></label><label>起始日期<input type="date" name="from"></label><label>截止日期<input type="date" name="to"></label><label>人物（多选为同时关联）<select name="people" id="people-filter" multiple size="2"></select></label><label>标签<input name="tag" placeholder="输入完整标签"></label><button class="button small" type="submit">应用筛选</button><button class="text-button" type="reset">清空</button></form>
+      <div id="active-filter" class="active-filter" hidden></div>
+      <div id="view-content" aria-live="polite"><div class="loading-state">正在打开你的生活相册…</div></div>
+      <footer class="page-footer"><span>生活不必盛大，值得记录就好。</span><span>LIFE ALBUM · 人生相册</span></footer>
+    </main>
+  </div>
+  <nav class="bottom-nav" aria-label="移动端主导航">
+    <button data-view="home" class="active"><i data-icon="home"></i><span>首页</span></button>
+    <button data-view="timeline"><i data-icon="list"></i><span>记录</span></button>
+    <button data-action="new" class="bottom-add" aria-label="新建人生记录"><i data-icon="plus"></i><span>新增</span></button>
+    <button data-view="places"><i data-icon="globe"></i><span>地点</span></button>
+    <button data-view="mine"><i data-icon="people"></i><span>我的</span></button>
+  </nav>
+  <dialog id="editor-dialog" class="editor-dialog" aria-labelledby="editor-title"><form id="record-form"><header class="dialog-header"><div><span class="eyebrow">SAVE A LITTLE MOMENT</span><h2 id="editor-title">记录这一刻</h2></div><button type="button" class="icon-button" data-close="editor-dialog" aria-label="关闭编辑器"><i data-icon="close"></i></button></header><div class="dialog-body">
+    <input type="hidden" name="id"><input type="hidden" name="version">
+    <div class="form-row"><label>这段时光的状态<select name="recordState"><option value="occurred">已发生 · 留下回忆</option><option value="ongoing">进行中 · 正在经历</option><option value="planned">计划中 · 未来可期</option><option value="recurring" hidden>周期性（导入资料）</option></select></label><label>完成状态<select name="completionState"><option value="completed">已完成</option><option value="started">已开始</option><option value="planned">待开始</option><option value="cancelled">已取消</option></select></label></div>
+    <div class="form-row"><label>日期精度<select name="datePrecision"><option value="unknown">日期未知</option><option value="day">精确到日</option><option value="month">精确到月</option><option value="year">精确到年</option><option value="range">日期范围</option></select></label><label>事件时区<input name="timezone" maxlength="256" value="Asia/Shanghai"></label></div>
+    <div class="form-row"><label id="event-start-row">事件日期<input type="date" name="eventDate"><select id="event-year" aria-label="选择事件年份" hidden></select><small id="date-hint">未知日期不编造具体日期</small></label><label id="event-end-row" hidden>结束日期<input type="date" name="eventEndAt"></label></div>
+    <label>给这段记忆起个名字<input name="title" maxlength="200" placeholder="今天，有什么值得留下？" class="title-input"></label>
+    <label>写下你的故事<textarea name="content" rows="7" maxlength="100000" placeholder="可以是一场旅行，也可以是一个普通的午后。慢慢写，这里只属于你。"></textarea></label>
+    <div class="form-row"><label>地点<input name="placeName" maxlength="200" placeholder="一座城市，或一个熟悉的角落"></label><label>心情<select name="mood"><option value="">不记录心情</option><option>开心</option><option>平静</option><option>温暖</option><option>期待</option><option>自由</option><option>难过</option><option>疲惫</option><option>复杂</option></select></label></div>
+    <label>标签<input name="tags" placeholder="输入一个标签；未点击添加的内容也会保存" maxlength="1024"></label><button type="button" class="button small" data-action="add-tag">添加标签</button><div id="editor-tags" class="tag-cloud"></div>
+    <label class="photo-upload"><i data-icon="image"></i><span>为故事添一张照片<small>JPEG / PNG / WebP，每张不超过 50 MB，最多 10 张，保留原图</small></span><input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp" multiple><span class="button small">选择照片</span></label><div id="photo-previews" class="photo-previews"></div>
+    <details class="more-fields"><summary>关联人物、地点精度与更多选项</summary><div class="relation-fields" id="relation-fields"></div><div class="form-row"><label>纬度<input type="number" name="latitude" step="any" min="-90" max="90" placeholder="可选"></label><label>经度<input type="number" name="longitude" step="any" min="-180" max="180" placeholder="可选"></label></div><div class="form-row"><label>地点精度<select name="placePrecision"><option value="city">城市</option><option value="region">地区</option><option value="gps">精确坐标（自行确认）</option></select></label></div><label class="checkbox-label"><input type="checkbox" name="showInTimeline" checked>在时间轴显示</label><label class="checkbox-label"><input type="checkbox" name="showOnGlobe">在足迹显示</label></details>
+    <p id="record-error" class="form-error" role="alert"></p>
+  </div><footer class="dialog-footer"><span id="draft-status" role="status">本机草稿</span><button type="button" class="button subtle" data-action="discard-record-draft">放弃草稿</button><button type="button" class="button subtle" data-action="save-record-draft">保存草稿并返回</button><button type="button" class="button subtle" data-close="editor-dialog">继续稍后</button><button type="submit" class="button primary" id="save-record">保存这段时光</button></footer></form></dialog>
+  <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
+  <dialog id="node-dialog" class="node-dialog" aria-labelledby="node-title"><form id="node-form"><header class="dialog-header"><h2 id="node-title">新建人生对象</h2><button type="button" class="icon-button" data-close="node-dialog" aria-label="关闭"><i data-icon="close"></i></button></header><div class="dialog-body"><input type="hidden" name="kind"><input type="hidden" name="id"><label>名称<input name="name" required maxlength="120"></label><input type="hidden" name="type" value="person"><input type="hidden" name="status" value="active"><span id="node-type-row" hidden></span><span id="node-status-row" hidden></span><label>意义 / 简介<textarea name="summary" rows="4" maxlength="10000" placeholder="它与你的生活有什么关系？"></textarea></label><input type="hidden" name="startDate"><input type="hidden" name="endDate"><p class="form-error" id="node-error" role="alert"></p></div><footer class="dialog-footer"><span id="person-draft-status" role="status"></span><button class="button subtle" type="button" data-action="discard-person-draft">放弃草稿</button><button class="button subtle" type="button" data-action="save-person-draft">保存草稿并返回</button><button class="button subtle" type="button" data-close="node-dialog">返回</button><button class="button primary" type="submit">正式保存</button></footer></form></dialog>
+  <dialog id="confirm-dialog" class="confirm-dialog" aria-labelledby="confirm-title"><form id="confirm-form"><header class="dialog-header"><h2 id="confirm-title"></h2><button type="button" class="icon-button" data-close="confirm-dialog" aria-label="关闭"><i data-icon="close"></i></button></header><div class="dialog-body"><p id="confirm-message"></p><div id="confirm-fields"></div><p class="form-error" id="confirm-error" role="alert"></p></div><footer class="dialog-footer"><button type="button" class="button subtle" data-close="confirm-dialog">取消</button><button type="submit" class="button primary" id="confirm-submit">确认</button></footer></form></dialog>
+  <dialog id="creation-dialog" class="confirm-dialog" aria-label="新增人生记录"><div class="dialog-body"><h2>想记录哪一种时光？</h2><p>选择状态后创建独立本机草稿。</p><div class="draft-list"><button class="button" data-create-state="ongoing">进行中 · 正在经历</button><button class="button" data-create-state="planned">计划中 · 未来期待</button><button class="button" data-create-state="occurred">已发生 · 留下记忆</button><button class="button subtle" data-close="creation-dialog">返回</button></div></div></dialog>
+  <dialog id="photo-dialog" class="photo-dialog" aria-label="全屏照片"><header><button class="button" data-photo-step="-1" aria-label="上一张">←</button><span id="photo-position"></span><button class="button" data-photo-step="1" aria-label="下一张">→</button><button class="button" data-action="photo-reset">还原</button><button class="button" data-close="photo-dialog">返回</button></header><div id="photo-stage"><img id="full-photo" alt="记录原图" draggable="false"></div><p id="photo-error" role="status"></p><button class="button" data-action="photo-retry">重试原图</button></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

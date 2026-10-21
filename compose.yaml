@@ -1,0 +1,35 @@
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: life_album
+      MYSQL_USER: life_album
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请在 .env 设置 MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 .env 设置 MYSQL_ROOT_PASSWORD}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--max-allowed-packet=64M"]
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_PASSWORD mysql -h 127.0.0.1 -u life_album -D life_album -e 'SELECT 1'"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5000:5000"
+    environment:
+      APP_ENV: production
+      SECRET_KEY: ${SECRET_KEY:?请设置独立随机 SECRET_KEY}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_HOST: db
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      RATELIMIT_STORAGE_URI: memory://
+    command: ["sh", "-c", "flask --app wsgi db upgrade && exec waitress-serve --host=0.0.0.0 --port=5000 --call app:create_app"]
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  mysql_data:

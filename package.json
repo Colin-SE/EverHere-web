@@ -2,6 +2,12 @@
   "name": "life-album-web-checks",
   "private": true,
   "description": "仅用于可选浏览器验收，应用前端无需构建。",
-  "scripts": {"test:browser": "node tools/browser-check.cjs"},
-  "devDependencies": {"playwright": "1.62.1"}
+  "scripts": {
+    "test:browser": "node tools/browser-check.cjs",
+    "test:graph": "node tools/lifegraph-state-check.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  },
+  "type": "module"
 }

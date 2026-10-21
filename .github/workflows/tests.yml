@@ -20,6 +20,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Life graph state tests
+        run: node tools/lifegraph-state-check.mjs
       - run: pip install -r requirements.lock.txt
       - name: SQLite business and permission tests
         run: python -m pytest

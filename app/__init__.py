@@ -31,8 +31,8 @@ def create_app(test_config=None):
     db.init_app(app)
     migrate.init_app(app, db)
     limiter.init_app(app)
-    from .api import archive, auth, cloud, drafts, graph, records
-    for blueprint in (auth.bp, records.bp, graph.bp, archive.bp, cloud.bp, drafts.bp):
+    from .api import archive, auth, cloud, drafts, graph, lifegraph, records
+    for blueprint in (auth.bp, records.bp, graph.bp, archive.bp, cloud.bp, drafts.bp, lifegraph.bp):
         app.register_blueprint(blueprint)
     app.before_request(load_user)
 

@@ -1,0 +1,1 @@
+版本化数据库迁移目录。使用 flask --app wsgi db upgrade 升级，开发流程见项目 README。

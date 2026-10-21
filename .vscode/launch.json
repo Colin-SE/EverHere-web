@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "人生相册：MySQL 真实运行",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/run.py",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "jinja": true,
+      "justMyCode": true,
+      "env": {
+        "APP_MODE": "mysql",
+        "APP_ENV": "development",
+        "PYTHONUTF8": "1"
+      },
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "Running on (https?://[^\\s]+)",
+        "uriFormat": "%s"
+      }
+    }
+  ]
+}

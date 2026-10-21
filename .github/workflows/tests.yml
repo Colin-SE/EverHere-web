@@ -1,0 +1,29 @@
+name: Web checks
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root-only
+          MYSQL_DATABASE: life_album_test
+          MYSQL_USER: album_test
+          MYSQL_PASSWORD: ci-test-only
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pci-root-only"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.lock.txt
+      - name: SQLite business and permission tests
+        run: python -m pytest
+      - name: MySQL migration and business tests
+        env:
+          TEST_DATABASE_URL: mysql+pymysql://album_test:ci-test-only@127.0.0.1:3306/life_album_test?charset=utf8mb4
+        run: python -m pytest

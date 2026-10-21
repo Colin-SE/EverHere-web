@@ -3,16 +3,18 @@ import {icon,hydrateIcons,esc,today,dateLabel,localPhoto,stateLabels,toast} from
 import * as views from './views.js';
 import {DraftSession} from './drafts.js';
 import {openGallery} from './gallery.js';
+import {lifegraphShell,mountLifeGraph} from './lifegraph.js';
 
 /* 统一页面状态：筛选与记录在视图切换时复用，不写入浏览器持久缓存。 */
 const now=new Date();
 const state={view:'home',homeYear:now.getFullYear(),records:[],allRecords:[],graph:{entities:[],},filters:{},q:'',user:null,calendarYear:now.getFullYear(),calendarMonth:now.getMonth(),selectedDate:today(),place:null,drafts:[],personId:null,theme:'WARM',allQuery:{filters:{},q:''},recordQuery:{filters:{},q:''}};
-const titles={about:['关于与帮助','本机资料、备份和当前真实能力。'],all:['全部记录','包含关闭时间轴显示的普通记录；筛选与时间轴独立。'],drafts:['本机草稿','草稿单独保存，不计正式记录，不进入云同步。'],trash:['回收站','软删除保留原 ID、关系和照片，可随时恢复。'],appearance:['外观','暖阳与林间，仅改变当前浏览器外观。'],person:['人物与经历','一份人物资料，关联同一份人生记录。'],home:['我的生活','过去，现在和未来，都是我的人生。'],timeline:['人生记录','按时间，重新遇见那些值得留下的生活。'],calendar:['日历回看','翻过日历，再次遇见那些有故事的日子。'],places:['地点','走过的地方，留下了属于你的故事。'],upcoming:['未来计划','给未来留一些期待，也给自己留一些空白。'],entities:['人物','那些人、那些地方，都在你的故事里。'],mine:['我的','保护、管理和带走自己的人生资料。'],archive:['数据管理','安心收藏，自由带走。']};
+const titles={lifegraph:['人生脉络','从现在出发，一点点打开人与经历的连接。'],about:['关于与帮助','本机资料、备份和当前真实能力。'],all:['全部记录','包含关闭时间轴显示的普通记录；筛选与时间轴独立。'],drafts:['本机草稿','草稿单独保存，不计正式记录，不进入云同步。'],trash:['回收站','软删除保留原 ID、关系和照片，可随时恢复。'],appearance:['外观','暖阳与林间，仅改变当前浏览器外观。'],person:['人物与经历','一份人物资料，关联同一份人生记录。'],home:['我的生活','过去，现在和未来，都是我的人生。'],timeline:['人生记录','按时间，重新遇见那些值得留下的生活。'],calendar:['日历回看','翻过日历，再次遇见那些有故事的日子。'],places:['地点','走过的地方，留下了属于你的故事。'],upcoming:['未来计划','给未来留一些期待，也给自己留一些空白。'],entities:['人物','那些人、那些地方，都在你的故事里。'],mine:['我的','保护、管理和带走自己的人生资料。'],archive:['数据管理','安心收藏，自由带走。']};
 const content=document.getElementById('view-content');
 const recordForm=document.getElementById('record-form');
 const editor=document.getElementById('editor-dialog');
 let editorRecord=null,editorPhotos=[],editorDirty=false,uploading=false,loadSequence=0;
 let editorTags=[],editorOpening=false,savingRecord=false,progressTouched=false,dateInputs={},dateMode='unknown';
+let disposeLifeGraph=null;
 let currentDetail=null,pendingArchive=null,pendingPreview=null,pendingConfirm=null;
 hydrateIcons();
 document.getElementById('today-label').textContent=`${today().replaceAll('-',' . ')}  /  ${now.toLocaleDateString('zh-CN',{weekday:'long'})}`;
@@ -42,7 +44,7 @@ document.getElementById('confirm-dialog').addEventListener('close',()=>{if(pendi
 function updateNav(){
   document.body.dataset.currentView=state.view;
   document.querySelectorAll('.nav-item,[data-view].bottom-nav-item,.bottom-nav [data-view]').forEach(button=>{
-    const mobileSection=['calendar','upcoming','all','person'].includes(state.view)?'timeline':['archive','entities','drafts','trash','appearance','about'].includes(state.view)?'mine':state.view;
+    const mobileSection=['calendar','upcoming','all','person'].includes(state.view)?'timeline':['archive','entities','drafts','trash','appearance','about','lifegraph'].includes(state.view)?'mine':state.view;
     const active=button.dataset.view===(button.closest('.bottom-nav')?mobileSection:state.view);
     button.classList.toggle('active',active);
     if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
@@ -53,20 +55,20 @@ function updateNav(){
   document.getElementById('page-description').textContent=description;
   document.getElementById('breadcrumb').textContent=title;
   document.title=`${title} · 人生相册`;
-  document.querySelector('.page-heading').hidden=state.view==='home';
+  document.querySelector('.page-heading').hidden=['home','lifegraph'].includes(state.view);
   document.getElementById('record-tools').hidden=!['timeline','calendar','places','upcoming','all','person'].includes(state.view);
   if(document.getElementById('record-tools').hidden)document.getElementById('filters').hidden=true;
-  document.getElementById('new-record').hidden=['archive','mine','trash','drafts','appearance','entities','about'].includes(state.view);
+  document.getElementById('new-record').hidden=['archive','mine','trash','drafts','appearance','entities','about','lifegraph'].includes(state.view);
 }
 function writeRoute(replace=false){
-  const params=new URLSearchParams({view:state.view});if(state.personId&&state.view==='person')params.set('id',state.personId);
+  const params=new URLSearchParams({view:state.view});if(state.view==='lifegraph'&&state.lifegraphFocus)params.set('focus',state.lifegraphFocus);if(state.personId&&state.view==='person')params.set('id',state.personId);
   if(['timeline','calendar','all','places','person','upcoming'].includes(state.view)){for(const [key,value] of Object.entries(state.filters))if(value)params.set(key,value);if(state.q)params.set('q',state.q);}
   if(state.view==='calendar'){params.set('month',`${state.calendarYear}-${String(state.calendarMonth+1).padStart(2,'0')}`);params.set('day',state.selectedDate);}
   history[replace?'replaceState':'pushState'](null,'','#'+params.toString());
 }
 function restoreRoute(){
   const params=new URLSearchParams(location.hash.slice(1));const view=params.get('view');state.view=Object.hasOwn(titles,view)?view:'home';
-  state.personId=params.get('id');state.filters={};for(const key of ['state','progress','precision','from','to','tag','node','kind','people'])if(params.get(key))state.filters[key]=params.get(key);
+  state.personId=params.get('id');state.lifegraphFocus=params.get('focus')||undefined;state.filters={};for(const key of ['state','progress','precision','from','to','tag','node','kind','people'])if(params.get(key))state.filters[key]=params.get(key);
   state.q=params.get('q')||'';const month=/^(\d{4})-(\d{2})$/.exec(params.get('month')||'');if(month&&Number(month[2])>=1&&Number(month[2])<=12){state.calendarYear=Number(month[1]);state.calendarMonth=Number(month[2])-1;}if(/^\d{4}-\d{2}-\d{2}$/.test(params.get('day')||''))state.selectedDate=params.get('day');
   syncFilterForm();
 }
@@ -81,6 +83,20 @@ async function navigate(view){
 window.addEventListener('popstate',async()=>{if(editor.open){await closeEditor();if(editor.open){writeRoute(true);return;}}if(nodeDialog.open){await closeNode();if(nodeDialog.open){writeRoute(true);return;}}restoreRoute();updateNav();await load();});
 async function load(){
   const sequence=++loadSequence;
+  disposeLifeGraph?.();disposeLifeGraph=null;
+  if(state.view==='lifegraph'){
+    content.innerHTML=lifegraphShell();
+    disposeLifeGraph=mountLifeGraph(document.getElementById('lifegraph'),{
+      focus:state.lifegraphFocus,
+      onFocus:key=>{state.lifegraphFocus=key;writeRoute(true);},
+      openRecord:showDetail,
+      closeReadingDialogs:()=>{for(const id of ['detail-dialog','confirm-dialog']){const dialog=document.getElementById(id);if(dialog.open)dialog.close();}},
+      openPerson:id=>{state.personId=id;navigate('person');},
+      openRecords:async node=>{state.allQuery={filters:node.type==='record'?{}:{node:node.id,kind:node.key.startsWith('entity:')?'entities':node.type==='chapter'?'chapters':'threads'},q:''};await navigate('all');if(node.type==='record')await showDetail(node.id);},
+      confirmRelation:({record,node,operation})=>ask({title:operation==='link'?'确认保存这条关联？':'确认解除这条关联？',message:`${record.label} ↔ ${node.label}。${operation==='link'?'作为用户明确保存的正式关联，所有视图和归档将读取同一份关系。':'解除后原记录、资料和照片仍然保留。'}`,label:operation==='link'?'确认关联':'确认解除',action:async()=>{}})
+    });
+    return;
+  }
   content.innerHTML='<div class="loading-state">正在翻开这一页生活…</div>';
   const useFilters=['timeline','calendar','places','upcoming','all','person'].includes(state.view);
   const target=['timeline','calendar'].includes(state.view)?'timeline':state.view==='places'?'spatial':'all';
@@ -139,6 +155,7 @@ recordForm.elements.datePrecision.addEventListener('change',()=>{configureDates(
 async function openEditor(record=null,planned=false,options={}){
   if(editorOpening)return;editorOpening=true;
   try{
+    if(state.view==='lifegraph')state.graph=await api('/graph');
     recordForm.reset();editorRecord=record;progressTouched=false;
     const initial={recordState:planned?'planned':options.recordState||'occurred',completionState:planned?'planned':options.recordState==='ongoing'?'started':'completed',datePrecision:state.view==='calendar'?'day':'unknown',eventDate:state.view==='calendar'?state.selectedDate:'',showInTimeline:true,showOnGlobe:false,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'Asia/Shanghai',placePrecision:'city'};
     let value=record||initial;
@@ -214,12 +231,13 @@ document.getElementById('photo-input').addEventListener('change',async event=>{
 });
 async function showDetail(id){
   try{
-    const record=await api(`/records/${encodeURIComponent(id)}`);currentDetail=record;
+    const record=await api(`/records/${encodeURIComponent(id)}`);
+    if(state.view==='lifegraph')state.graph=await api('/graph');currentDetail=record;
     const links=[];
     for(const [kind,field] of Object.entries({entities:'linkedEntityIds',threads:'linkedThreadIds',chapters:'linkedChapterIds'})){
       for(const node of state.graph[kind])if(record[field]?.includes(node.id))links.push(node.name);
     }
-    document.getElementById('detail-content').innerHTML=`<header class="detail-heading"><button class="icon-button close-detail" data-close="detail-dialog" aria-label="关闭详情">${icon('close')}</button><div class="record-top"><span class="record-place">${icon('pin')}${esc(record.placeName||'生活里的某个角落')}</span><span class="record-state state-${esc(record.recordState)}">${stateLabels[record.recordState]}</span></div><h2 id="detail-title">${esc(record.title||'一段未命名的时光')}</h2><div class="detail-date">${esc(dateLabel(record.eventDate))}${record.eventEndAt?` — ${esc(dateLabel(record.eventEndAt))}`:''} · ${esc(record.mood||'一段属于你的生活')}</div></header><div class="detail-body"><div class="detail-text">${esc(record.content)}</div><div class="detail-photos">${(record.photoUris||[]).map(uri=>localPhoto(uri)?`<img src="${esc(uri)}" alt="记忆中的照片" data-detail-photo="${(record.photoUris||[]).indexOf(uri)}">`:'<div class="photo-unavailable">原端照片仅保留引用，需在编辑时重新上传。</div>').join('')}</div><div class="record-meta">${(record.tags||[]).map(tag=>`<span class="tag"># ${esc(tag)}</span>`).join('')}</div><div class="detail-relations">${record.linkedEntityIds?.map(id=>{const person=state.graph.entities.find(node=>node.id===id);return person?`<button class="button small" data-person="${esc(id)}">${esc(person.name)}</button>`:'';}).join('')||''}</div></div><footer class="dialog-footer">${`<button class="button subtle danger" data-action="delete-record">${icon('trash')}删除</button><button class="button primary" data-action="edit-record">${icon('edit')}编辑这段时光</button>`}</footer>`;
+    document.getElementById('detail-content').innerHTML=`<header class="detail-heading"><button class="icon-button close-detail" data-close="detail-dialog" aria-label="关闭详情">${icon('close')}</button><div class="record-top"><span class="record-place">${icon('pin')}${esc(record.placeName||'生活里的某个角落')}</span><span class="record-state state-${esc(record.recordState)}">${stateLabels[record.recordState]}</span></div><h2 id="detail-title">${esc(record.title||'一段未命名的时光')}</h2><div class="detail-date">${esc(dateLabel(record.eventDate))}${record.eventEndAt?` — ${esc(dateLabel(record.eventEndAt))}`:''} · ${esc(record.mood||'一段属于你的生活')}</div></header><div class="detail-body"><div class="detail-text">${esc(record.content)}</div><div class="detail-photos">${(record.photoUris||[]).map(uri=>localPhoto(uri)?`<img src="${esc(uri)}" alt="记忆中的照片" data-detail-photo="${(record.photoUris||[]).indexOf(uri)}">`:'<div class="photo-unavailable">原端照片仅保留引用，需在编辑时重新上传。</div>').join('')}</div><div class="record-meta">${(record.tags||[]).map(tag=>`<span class="tag"># ${esc(tag)}</span>`).join('')}</div><div class="detail-relations">${record.linkedEntityIds?.map(id=>{const person=state.graph.entities.find(node=>node.id===id);return person?`<button class="button small" data-person="${esc(id)}">${esc(person.name)}</button>`:'';}).join('')||''}</div></div><footer class="dialog-footer"><button class="button subtle" data-action="view-lifegraph">${icon('thread')}在脉络中查看</button>${`<button class="button subtle danger" data-action="delete-record">${icon('trash')}删除</button><button class="button primary" data-action="edit-record">${icon('edit')}编辑这段时光</button>`}</footer>`;
     document.getElementById('detail-dialog').showModal();
   }catch(error){toast(error.message);}
 }
@@ -277,6 +295,7 @@ function replaceRecordFilters(values){
 }
 
 const actions={
+  'view-lifegraph':async()=>{if(!currentDetail)return;state.lifegraphFocus='record:'+currentDetail.id;document.getElementById('detail-dialog').close();await navigate('lifegraph');},
   'save-record-draft':saveDraftAndClose,'save-person-draft':savePersonAndClose,
   'discard-record-draft':async()=>{if(uploading||savingRecord)return;if(recordDraft.current)await recordDraft.discard();editorDirty=false;editor.close();document.getElementById('confirm-dialog').close();await load();},
   'discard-person-draft':async()=>{if(savingPerson)return;if(personDraft.current)await personDraft.discard();nodeDirty=false;nodeDialog.close();document.getElementById('confirm-dialog').close();await load();},
@@ -314,6 +333,7 @@ document.addEventListener('click',async event=>{
   try{
     if(target.dataset.close){if(target.dataset.close==='editor-dialog')await closeEditor();else if(target.dataset.close==='node-dialog')await closeNode();else document.getElementById(target.dataset.close).close();}
     else if(target.dataset.view)await navigate(target.dataset.view);
+    else if(target.dataset.graphFocus){state.lifegraphFocus=target.dataset.graphFocus;await navigate('lifegraph');}
     else if(target.dataset.switch)await navigate(target.dataset.switch);
     else if(target.dataset.homeAll){state.allQuery={filters:{},q:''};await navigate('all');}
     else if(target.dataset.homeState){state.allQuery={filters:{state:target.dataset.homeState},q:''};await navigate('all');}

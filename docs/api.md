@@ -35,3 +35,12 @@
 归档仅支持 everhere-archive/1，同区、校验和、严格schema；不接受旧schemaVersion1/2或受保护资料。单次JSON16MiB/ZIP128MiB。CRC、SHA256、图片类型/尺寸、重复路径和非清单内容校验失败整体拒绝。恢复支持保留两份的稳定复制ID；不覆盖原资料、墓碑或活动草稿。
 
 旧本地注册/密码登录/账户删除/保险箱路由已删除，返回404。协议中保留对象/阶段/长期投入数据不代表其完整页面已实现。
+
+## 人生脉络（2026-10-21）
+
+- GET `/lifegraph/neighbors`：focus=now或record:/entity:/chapter:/thread:稳定ID；types逗号列表、from/to日期、cursor。每页6邻居，now可附3直接对象；返回nodes/edges/nextCursor，不递归展开。游标15分钟且绑定当前空间/焦点/筛选。
+- GET `/lifegraph/search`：q最长100字，scope=all/record/target，最多12项及hasMore，只查当前普通/未删除资料。
+- POST `/lifegraph/snapshot`：keys为1～80个已知节点键，只复核授权事实及其间真实关系；读取失败不是空数据。该POST不写业务事实。
+- POST `/lifegraph/relations`：recordId、nodeKey、version、operation=link/unlink、confirmed=true。只写既有事件—对象/阶段/长期投入关系，CSRF与版本保护；重复关系不重复新增，过期版本409，不能跨空间或给now/记录—记录造关系。活动草稿不覆盖。
+
+节点投影仅含摘要及稳定ID；边有type、label、provenance和editable。time_context为时间定位，不可编辑；record_entity/record_chapter/record_thread为正式关系，chapter_thread来自既有原生章关系且本轮只读。所有边依赖当前可读取原事实，删除/解绑后重新计算。

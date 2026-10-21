@@ -23,18 +23,24 @@ def app():
             db.create_all()
         else:
             upgrade()
+    # 每个请求独立结束会话，模拟真实 Flask 生命周期；不得让 MySQL
+    # REPEATABLE READ 快照跨越整条用例，遮蔽其他连接已经提交的资料。
+    try:
         yield application
-        db.session.remove()
-        for table in reversed(db.metadata.sorted_tables):
-            db.session.execute(table.delete())
-        db.session.commit()
-        db.engine.dispose()
-    if stage.exists():
-        assert stage.resolve().is_relative_to((Path.cwd() / 'test-results').resolve())
-        for generated in stage.iterdir():
-            assert generated.is_file() and generated.suffix == '.bin'
-            generated.unlink()
-        stage.rmdir()
+    finally:
+        with application.app_context():
+            db.session.remove()
+            for table in reversed(db.metadata.sorted_tables):
+                db.session.execute(table.delete())
+            db.session.commit()
+            db.engine.dispose()
+        if stage.exists():
+            assert stage.resolve().is_relative_to((Path.cwd() / 'test-results').resolve())
+            for generated in stage.iterdir():
+                assert generated.is_file() and generated.suffix == '.bin'
+                generated.unlink()
+            stage.rmdir()
+
 
 
 class Client:

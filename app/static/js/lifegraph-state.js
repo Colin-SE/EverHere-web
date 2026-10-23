@@ -1,3 +1,4 @@
+import {t,h,m,locale} from './i18n.js';
 /* 展开只改变视图；每个分支维护自己的引用，共享节点和环不会重复创建。 */
 export class LifeGraphState {
   constructor(){this.reset();}
@@ -8,7 +9,7 @@ export class LifeGraphState {
     for(const node of page.nodes)branch.keys.add(node.key);
     for(const edge of page.edges)branch.edges.set(edge.id,edge);
     const projected=new Set([...this.visible().nodes.map(node=>node.key),...branch.keys]);
-    if(projected.size>80)throw new Error('当前已展开较多内容，请先收起一部分，或重新聚焦后继续探索。');
+    if(projected.size>80)throw new Error(t('当前已展开较多内容，请先收起一部分，或重新聚焦后继续探索。'));
     for(const node of page.nodes)this.nodes.set(node.key,node);
     this.branches.set(page.focus,branch);
   }

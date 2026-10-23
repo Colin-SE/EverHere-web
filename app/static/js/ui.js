@@ -1,3 +1,4 @@
+import {t,h,m,locale} from './i18n.js';
 /* 本地图标与转义工具，不依赖 CDN，不把用户正文当 HTML 执行。 */
 const paths = {
   home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
@@ -36,19 +37,26 @@ export function hydrateIcons(root = document) { root.querySelectorAll('[data-ico
 export const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 export function today() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 export function dateLabel(value, options = {}) {
-  if(!value)return '日期未详';
+  if(!value)return t('日期未详');
   const year=/^([+-]?[0-9]{1,10})$/.exec(value);
-  if(year)return year[1]+'年';
+  if(year)return locale()==='en'?year[1]:year[1]+'年';
   const month=/^([+-]?[0-9]{4,10})-([0-9]{2})$/.exec(value);
-  if(month)return month[1]+'年'+Number(month[2])+'月';
+  if(month){
+    if(locale()==='en')return new Intl.DateTimeFormat('en',{month:'long'}).format(new Date(2000,Number(month[2])-1,1))+' '+month[1];
+    return month[1]+'年'+Number(month[2])+'月';
+  }
   // 扩展年份保留原文，不交给 Date 改写为公元日期。
   if(!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value)||value.startsWith('0000'))return value;
   const date=new Date(value+'T12:00:00');
-  return Number.isNaN(date.getTime())?value:date.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',...options});
+  return Number.isNaN(date.getTime())?value:date.toLocaleDateString(locale(),{year:'numeric',month:'long',day:'numeric',...options});
 }
 export function localPhoto(uri) { return typeof uri === 'string' && /^\/api\/v1\/photos\/[a-f0-9-]{36}$/.test(uri); }
-export const stateLabels = {occurred:'已发生', ongoing:'进行中', planned:'计划中', recurring:'周期性'};
-export const typeLabels = {person:'人物',pet:'宠物',place:'地点',work:'工作',media:'影音作品',custom:'自定义'};
-export const threadLabels = {active:'进行中',planned:'准备开始',paused:'暂时搁置',completed:'已完成',redirected:'转向了',ended:'已结束'};
+export function moodLabel(value){
+  // 已有八个心情值属于稳定存储值；自定义/导入文字不作翻译。
+  return ['开心','平静','温暖','期待','自由','难过','疲惫','复杂'].includes(value)?t(value):value;
+}
+export const stateLabels = {occurred:t('已发生'), ongoing:t('进行中'), planned:t('计划中'), recurring:t('周期性')};
+export const typeLabels = {person:t('人物'),pet:t('宠物'),place:t('地点'),work:t('工作'),media:t('影音作品'),custom:t('自定义')};
+export const threadLabels = {active:t('进行中'),planned:t('准备开始'),paused:t('暂时搁置'),completed:t('已完成'),redirected:t('转向了'),ended:t('已结束')};
 let toastTimer;
 export function toast(message) { const node = document.getElementById('toast'); if (!node) return; node.textContent=message; node.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>{node.hidden=true;},3800); }

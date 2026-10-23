@@ -1,12 +1,13 @@
+import {t,h,m,locale} from './i18n.js';
 /* 原图查看独立于事实编辑；切换照片不改变资源顺序或保存内容。 */
 import {localPhoto} from './ui.js';
 const dialog=document.getElementById('photo-dialog'),image=document.getElementById('full-photo'),stage=document.getElementById('photo-stage');
 let photos=[],index=0,zoom=1,x=0,y=0,drag=null;
 function transform(){image.style.transform=`translate(${x}px,${y}px) scale(${zoom})`;}
 function reset(){zoom=1;x=y=0;transform();}
-function render(){reset();document.getElementById('photo-position').textContent=`${index+1} / ${photos.length}`;document.getElementById('photo-error').textContent='';image.hidden=!localPhoto(photos[index]);if(image.hidden){image.removeAttribute('src');document.getElementById('photo-error').textContent='这张原图尚未在本机恢复，照片元信息仍保留。';}else image.src=photos[index];}
+function render(){reset();document.getElementById('photo-position').textContent=`${index+1} / ${photos.length}`;document.getElementById('photo-error').textContent='';image.hidden=!localPhoto(photos[index]);if(image.hidden){image.removeAttribute('src');document.getElementById('photo-error').textContent=t('这张原图尚未在本机恢复，照片元信息仍保留。');}else image.src=photos[index];}
 export function openGallery(uris,selected=0){photos=[...uris];if(!photos.length)return;index=Math.max(0,Math.min(photos.length-1,selected));render();if(!dialog.open)dialog.showModal();}
-image.addEventListener('error',()=>{document.getElementById('photo-error').textContent='原图暂时不可读取，请重试；记录和照片引用保持不变。';});
+image.addEventListener('error',()=>{document.getElementById('photo-error').textContent=t('原图暂时不可读取，请重试；记录和照片引用保持不变。');});
 image.addEventListener('load',()=>{document.getElementById('photo-error').textContent='';});
 stage.addEventListener('wheel',event=>{event.preventDefault();zoom=Math.min(8,Math.max(1,zoom*(event.deltaY<0?1.15:1/1.15)));if(zoom===1)x=y=0;transform();},{passive:false});
 image.addEventListener('dblclick',()=>{zoom=zoom===1?2:1;x=y=0;transform();});

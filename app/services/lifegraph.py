@@ -9,6 +9,7 @@ from sqlalchemy import select
 from ..extensions import db
 from ..models import LifeNode, LifeRecord, RecordNode, now
 from ..security import APIError
+from ..i18n import translate as _
 from .record_query import record_date, window
 from .records import identifier, record_data
 from sync_contract import event_date
@@ -75,12 +76,12 @@ def interval(row):
 
 def projection(row):
     if row is None:
-        return {'key': 'now', 'id': 'now', 'type': 'now', 'label': '现在', 'subtitle': graph_today().isoformat(), 'summary': '从此刻出发，慢慢打开与你有关的人与事。', 'version': 0, 'date': None, 'canOpen': False}
+        return {'key': 'now', 'id': 'now', 'type': 'now', 'label': _('现在'), 'subtitle': graph_today().isoformat(), 'summary': _('从此刻出发，慢慢打开与你有关的人与事。'), 'version': 0, 'date': None, 'canOpen': False}
     is_record = isinstance(row, LifeRecord)
     kind = 'record' if is_record else row.payload.get('type', 'custom') if row.kind == 'entities' else 'chapter' if row.kind == 'chapters' else 'thread'
     raw_date = record_date(row.payload) if is_record else row.payload.get('androidDocument', {}).get('eventDate')
-    return {'key': key(row), 'id': row.source_id, 'type': kind, 'label': row.title or '未命名记录' if is_record else row.name,
-            'subtitle': LABELS.get(kind, '对象'), 'summary': (row.content if is_record else row.payload.get('summary', ''))[:280],
+    return {'key': key(row), 'id': row.source_id, 'type': kind, 'label': row.title or _('未命名记录') if is_record else row.name,
+            'subtitle': _(LABELS.get(kind, '对象')), 'summary': (row.content if is_record else row.payload.get('summary', ''))[:280],
             'version': row.version, 'date': raw_date, 'recordState': row.record_state if is_record else None,
             'canOpen': is_record or kind == 'person'}
 
@@ -125,14 +126,14 @@ def temporal(row):
 def edge(left, right, temporal_context=False, chapter_context=False):
     a, b = 'now' if left is None else key(left), key(right)
     if temporal_context:
-        relation, label = 'time_context', '时间定位 · 非正式关系'
+        relation, label = 'time_context', _('时间定位 · 非正式关系')
     elif chapter_context:
-        relation, label = 'chapter_thread', '阶段关联的长期投入'
+        relation, label = 'chapter_thread', _('阶段关联的长期投入')
     else:
         relation = {'entities': 'record_entity', 'chapters': 'record_chapter', 'threads': 'record_thread'}[right.kind]
-        label = {'entities': '记录关联的' + LABELS.get(right.payload.get('type'), '对象'), 'chapters': '归属人生阶段', 'threads': '属于长期投入'}[right.kind]
+        label = {'entities': _('记录关联的{kind}', kind=_(LABELS.get(right.payload.get('type'), '对象'))), 'chapters': _('归属人生阶段'), 'threads': _('属于长期投入')}[right.kind]
     return {'id': relation + '|' + a + '|' + b, 'source': a, 'target': b, 'type': relation, 'label': label,
-            'provenance': '时间范围或进行中状态，仅用于浏览' if temporal_context else '用户保存的正式关联',
+            'provenance': _('时间范围或进行中状态，仅用于浏览') if temporal_context else _('用户保存的正式关联'),
             'editable': not temporal_context and not chapter_context,
             'recordId': left.source_id if isinstance(left, LifeRecord) else None,
             'nodeKey': key(right) if not temporal_context and not chapter_context else None}

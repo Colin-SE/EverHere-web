@@ -1,0 +1,915 @@
+{
+  "date": "2026-10-22",
+  "scope": "当前Web工作区，独立SQLite与Edge合成资料；Android与真实共同云未执行",
+  "source": "docs/product-plan-v3.md（用户本次确认的完整产品需求）；技术架构以docs/requirements.md为准",
+  "sourceSha256": "a9c17a4ed1dc855783887387f40ba7f44dafb09365e59daf40d6be74a9da160f",
+  "rows": [
+    {
+      "id": "WEB-4.1-01",
+      "section": "4.1",
+      "feature": "首页近期、最近编辑、进行中、计划与真实入口",
+      "status": "通过",
+      "result": "读取同一份正式记录，草稿与回收站独立；统计可进入筛选结果",
+      "evidence": "app/static/js/views.js: home；tools/browser-check.cjs",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.1-02",
+      "section": "4.1",
+      "feature": "最终手机视觉与全页面一致性",
+      "status": "待验证",
+      "result": "桌面与390px合成浏览器路径已有证据；不等于物理手机或用户视觉签收",
+      "evidence": "tools/browser-check.cjs；docs/verification.md",
+      "next": "补实际设备、大字和用户视觉验收"
+    },
+    {
+      "id": "WEB-4.2-01",
+      "section": "4.2",
+      "feature": "三种创作状态、同ID编辑与人物预填",
+      "status": "通过",
+      "result": "已发生、进行中、计划共用编辑器；修改保持ID",
+      "evidence": "tests/test_application.py；tools/browser-check.cjs",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.2-02",
+      "section": "4.2",
+      "feature": "草稿自动保存、恢复、放弃与冲突保护",
+      "status": "通过",
+      "result": "600ms自动保存，记录与人物草稿独立；重复提交幂等、冲突保留输入",
+      "evidence": "test_draft_raw_values_restart_conflict_and_commit_receipt；浏览器草稿刷新路径",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.2-03",
+      "section": "4.2",
+      "feature": "那一天、影音、萌宠创作入口",
+      "status": "未实现",
+      "result": "目前没有完整六入口；不开放假入口",
+      "evidence": "app/templates/index.html: creation-dialog；app/static/js/app.js",
+      "next": "先完成提醒、影音和宠物业务，再接统一编辑器"
+    },
+    {
+      "id": "WEB-4.2-04",
+      "section": "4.2",
+      "feature": "浏览器离线写入与突然退出保护",
+      "status": "部分通过",
+      "result": "已被服务端确认的草稿可恢复；断网或最后600ms输入不保证持久化",
+      "evidence": "app/static/js/drafts.js；app/static/js/app.js: beforeunload",
+      "next": "设计授权离线缓存、生命周期和多标签冲突"
+    },
+    {
+      "id": "WEB-4.3-01",
+      "section": "4.3",
+      "feature": "日、月、年、范围、未知及事件时区",
+      "status": "通过",
+      "result": "保留日期精度与事件时间，不用创建时间替代；扩展年份原文保真",
+      "evidence": "test_dates_preserve_exact_precision_and_raw_text；test_actual_android_json_roundtrip_and_edit_preserve_raw_fields",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.3-02",
+      "section": "4.3",
+      "feature": "计划转实际、取消和独立完成状态",
+      "status": "通过",
+      "result": "确认真实日期后更新原ID，日期过去不自动完成",
+      "evidence": "test_plan_to_fact_requires_actual_date_but_progress_is_independent",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.3-03",
+      "section": "4.3",
+      "feature": "照片EXIF日期辅助与空日期候选",
+      "status": "未实现",
+      "result": "未对齐规划引用code24/25的日期帮助",
+      "evidence": "app/static/js/app.js: configureDates/openEditor",
+      "next": "读取有效拍摄日作候选，用户已有输入优先；取消不提交"
+    },
+    {
+      "id": "WEB-4.3-04",
+      "section": "4.3",
+      "feature": "扩展年份新建与跨期日历完整交互",
+      "status": "部分通过",
+      "result": "归档可保真；交互年份范围与HTML日期控件仍有限制",
+      "evidence": "app/static/js/app.js: configureDates；app/static/js/record-date.js",
+      "next": "补负年份、大年份和超长范围的人机交互"
+    },
+    {
+      "id": "WEB-4.4-01",
+      "section": "4.4",
+      "feature": "多图上传、原字节、顺序与批量失败原子性",
+      "status": "通过",
+      "result": "最多10张，单图50MiB/100MP；原字节保留，失败批次不部分提交",
+      "evidence": "test_photo_original_bytes_and_failed_batch_are_atomic；tools/browser-check.cjs",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.4-02",
+      "section": "4.4",
+      "feature": "全屏原图、缩放、切换与失败重试",
+      "status": "通过",
+      "result": "详情和编辑照片可打开独立查看器；失败保留引用",
+      "evidence": "app/static/js/gallery.js；tools/browser-check.cjs",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.4-03",
+      "section": "4.4",
+      "feature": "拖动排序、缩略图流水线与孤立资源回收",
+      "status": "未实现",
+      "result": "现有顺序保留，但无完整排序与资源回收流程",
+      "evidence": "app/api/records.py；app/static/js/app.js",
+      "next": "补引用计数、缩略图、延迟回收和显式清理"
+    },
+    {
+      "id": "WEB-4.4-04",
+      "section": "4.4",
+      "feature": "安卓同等级私有加密照片和云原图进度",
+      "status": "未实现",
+      "result": "Web普通原图未提供安卓同等级加密或云传输闭环",
+      "evidence": "app/models.py；app/api/records.py；app/api/cloud.py",
+      "next": "按Web密钥和共同云协议独立实现"
+    },
+    {
+      "id": "WEB-4.5-01",
+      "section": "4.5",
+      "feature": "统一详情、原ID编辑、软删除与恢复",
+      "status": "通过",
+      "result": "多个视图指向同一记录；恢复保留原ID、关系和照片",
+      "evidence": "test_soft_delete_restores_original_id_relations_and_photos；tools/browser-check.cjs",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.5-02",
+      "section": "4.5",
+      "feature": "永久删除及照片资源回收",
+      "status": "未实现",
+      "result": "仅开放软删除和恢复",
+      "evidence": "app/api/records.py；app/static/js/views.js: trash",
+      "next": "定义范围、确认、引用规则和失败恢复"
+    },
+    {
+      "id": "WEB-4.5-03",
+      "section": "4.5",
+      "feature": "各入口返回后的完整滚动位置",
+      "status": "部分通过",
+      "result": "查询路由状态和脉络视口有保留；普通列表滚动位置未完整保留",
+      "evidence": "app/static/js/app.js: writeRoute/restoreRoute；tools/lifegraph-browser-check.cjs",
+      "next": "补普通列表详情返回滚动恢复"
+    },
+    {
+      "id": "WEB-4.6-01",
+      "section": "4.6",
+      "feature": "时间轴按事件日期与状态展示",
+      "status": "通过",
+      "result": "显示开关只影响时间轴，ALL保持独立查询",
+      "evidence": "test_query_targets_words_progress_and_date_overlap；tools/browser-check.cjs",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.6-02",
+      "section": "4.6",
+      "feature": "日历翻月、跳月、选日新增与粗精度单列",
+      "status": "通过",
+      "result": "月/年/未知不画虚假精确日标记；选日可预填",
+      "evidence": "app/static/js/record-date.js；tools/browser-check.cjs",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.7-01",
+      "section": "4.7",
+      "feature": "关键词、状态、进展、日期、标签、多人物筛选",
+      "status": "通过",
+      "result": "多关键词全匹配、日期重叠、多人物同时关联；统计读真实资料",
+      "evidence": "test_query_targets_words_progress_and_date_overlap；app/services/record_query.py",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.7-02",
+      "section": "4.7",
+      "feature": "完整对象筛选、高级回顾与大档案分页",
+      "status": "部分通过",
+      "result": "人物和已支持条件可用；其他对象业务及服务端分页未完整实现",
+      "evidence": "app/services/record_query.py；app/static/js/views.js",
+      "next": "扩展对象上线后补筛选；建立大档案性能样本"
+    },
+    {
+      "id": "WEB-4.8-01",
+      "section": "4.8",
+      "feature": "人物创建、编辑、同名独立、搜索和相关经历",
+      "status": "通过",
+      "result": "人物独立草稿；从人物新建经历预填关系",
+      "evidence": "test_people_drafts_same_names_and_unlink_preserve_record；tools/browser-check.cjs",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.8-02",
+      "section": "4.8",
+      "feature": "删除人物只解绑、保留经历与原图",
+      "status": "通过",
+      "result": "删除人物不级联删除原事件",
+      "evidence": "test_people_drafts_same_names_and_unlink_preserve_record",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.8-03",
+      "section": "4.8",
+      "feature": "人物封面、完整资料与人物间关系",
+      "status": "未实现",
+      "result": "目前提供名称和意义；没有完整人物间语义关系编辑",
+      "evidence": "app/api/graph.py；app/static/js/app.js: openNode",
+      "next": "定义资料与关系语义、迁移及归档兼容"
+    },
+    {
+      "id": "WEB-4.9-01",
+      "section": "4.9",
+      "feature": "宠物分类档案、生日/到家日及成长经历",
+      "status": "未实现",
+      "result": "原生协议保留类型，脉络可展示导入对象；没有创建和管理闭环",
+      "evidence": "sync_contract.py；app/api/graph.py",
+      "next": "实现宠物独立资料与统一记录关联"
+    },
+    {
+      "id": "WEB-4.9-02",
+      "section": "4.9",
+      "feature": "物品档案、来源、意义及跨阶段经历",
+      "status": "未实现",
+      "result": "协议保留不等于物品产品页面",
+      "evidence": "sync_contract.py；app/api/graph.py",
+      "next": "实现物品资料和删除解绑规则"
+    },
+    {
+      "id": "WEB-4.10-01",
+      "section": "4.10",
+      "feature": "文字地点、合法坐标、精度与空间查询",
+      "status": "通过",
+      "result": "无坐标可保存文字；0坐标有效；仅显示开启空间展示的合法记录",
+      "evidence": "app/services/records.py；app/services/record_query.py；tests/test_application.py",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.10-02",
+      "section": "4.10",
+      "feature": "独立地点、工作和自定义对象档案",
+      "status": "未实现",
+      "result": "旧泛对象页已移除，work含义保留",
+      "evidence": "app/api/graph.py；sync_contract.py",
+      "next": "按规划定义完整对象页"
+    },
+    {
+      "id": "WEB-4.10-03",
+      "section": "4.10",
+      "feature": "高德地址搜索、选点与主动定位",
+      "status": "未实现",
+      "result": "仅完成选型调研，未配置或接入地图服务",
+      "evidence": "app/config.py；app/static/js/views.js: places",
+      "next": "确认坐标系、服务密钥、授权和双端兼容后实现"
+    },
+    {
+      "id": "WEB-4.11-01",
+      "section": "4.11",
+      "feature": "影音作品库、分类、评分与多次体验",
+      "status": "未实现",
+      "result": "没有可用影音业务页面",
+      "evidence": "app/api/graph.py；app/static/js/views.js",
+      "next": "区分作品资料与个人事件日期、进展"
+    },
+    {
+      "id": "WEB-4.12-01",
+      "section": "4.12",
+      "feature": "阶段命名、日期精度、重叠阶段与未来阶段",
+      "status": "未实现",
+      "result": "仅保留LifeChapter原生协议与图谱投影",
+      "evidence": "sync_contract.py；app/services/lifegraph.py",
+      "next": "实现阶段列表、详情和独立编辑流程"
+    },
+    {
+      "id": "WEB-4.12-02",
+      "section": "4.12",
+      "feature": "阶段规划、回顾与候选关联确认",
+      "status": "未实现",
+      "result": "没有完整规划/回顾字段与页面闭环",
+      "evidence": "app/models.py；app/api/graph.py",
+      "next": "追加兼容模型，完成CHAPTER-PLAN-01专项"
+    },
+    {
+      "id": "WEB-4.13-01",
+      "section": "4.13",
+      "feature": "长期投入列表、详情、状态与容器内新增",
+      "status": "未实现",
+      "result": "LifeThread仅保留协议语义；脉络可读既有关联",
+      "evidence": "sync_contract.py；app/services/lifegraph.py",
+      "next": "定义完整容器业务与预填关系"
+    },
+    {
+      "id": "WEB-4.14-01",
+      "section": "4.14",
+      "feature": "NOW：现在有限邻域与事件时间解释",
+      "status": "通过",
+      "result": "过去30天至未来14天及进行中，每页6项；不按最近编辑推断重要性",
+      "evidence": "test_now_is_limited_time_context_not_recently_edited；tools/lifegraph-browser-check.cjs",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.14-02",
+      "section": "4.14",
+      "feature": "EXPAND：一层展开、分页、收起、聚焦与去重",
+      "status": "通过",
+      "result": "共享节点与环去重；视图最多80节点；可回到现在和筛选",
+      "evidence": "tests/test_lifegraph.py；tools/lifegraph-state-check.mjs；tools/lifegraph-browser-check.cjs",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.14-03",
+      "section": "4.14",
+      "feature": "LINK：同ID详情跳转与视口返回",
+      "status": "通过",
+      "result": "从图谱进入原详情编辑后保留当前探索上下文",
+      "evidence": "tools/lifegraph-browser-check.cjs；app/static/js/lifegraph.js",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.14-04",
+      "section": "4.14",
+      "feature": "REL：既有正式关联增删和来源说明",
+      "status": "通过",
+      "result": "显式确认、版本校验；解除不删正文原图；不推断共同参与者亲密关系",
+      "evidence": "test_explicit_link_unlink_updates_same_fact_and_native_archive_preserves_draft；tests/test_lifegraph.py",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.14-05",
+      "section": "4.14",
+      "feature": "PRIV/COMPAT：当前空间隔离与归档保真",
+      "status": "通过",
+      "result": "删除与跨空间不能继续显示；正式关联通过原生归档保存",
+      "evidence": "test_spaces_and_deleted_or_protected_data_never_enter_graph；test_native_record_relation_edit_preserves_original_fields_photos_and_audit",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.14-06",
+      "section": "4.14",
+      "feature": "新语义关系、完整对象详情、布局跨端",
+      "status": "未实现",
+      "result": "仅既有关联；没有人物间因果/影响语义及布局同步",
+      "evidence": "app/services/lifegraph.py；docs/lifegraph.md",
+      "next": "先定义新关系方向、来源、时间与迁移"
+    },
+    {
+      "id": "WEB-4.14-07",
+      "section": "4.14",
+      "feature": "物理手机手势、海量性能与最终设计签收",
+      "status": "待验证",
+      "result": "现有证据限Edge合成库及390px视口",
+      "evidence": "tools/lifegraph-browser-check.cjs；docs/verification.md",
+      "next": "真机、大档案和用户代表画面验收"
+    },
+    {
+      "id": "WEB-4.15-01",
+      "section": "4.15",
+      "feature": "未来计划、待安排、改期、取消和确认发生",
+      "status": "通过",
+      "result": "未来入口读取同源计划，过期不自动变成已发生",
+      "evidence": "app/static/js/views.js: upcoming；test_plan_to_fact_requires_actual_date_but_progress_is_independent",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.15-02",
+      "section": "4.15",
+      "feature": "往年今天、纪念日与解释性统计回顾",
+      "status": "未实现",
+      "result": "没有完整那一天或高级回顾页面",
+      "evidence": "app/static/js/views.js",
+      "next": "按真实事件日期生成回顾并可回到原详情"
+    },
+    {
+      "id": "WEB-4.15-03",
+      "section": "4.15",
+      "feature": "提醒权限、调度、闰日时区及取消旧任务",
+      "status": "未实现",
+      "result": "导入仅保存提醒元信息，不启动系统通知",
+      "evidence": "sync_contract.py；tests/test_local_android.py",
+      "next": "定义各端调度与去重、拒绝权限后行为"
+    },
+    {
+      "id": "WEB-4.16-01",
+      "section": "4.16",
+      "feature": "同源地点列表与显示开关",
+      "status": "通过",
+      "result": "已有地点列表，点击原记录；缺坐标不猜点位",
+      "evidence": "app/static/js/views.js: places；app/services/record_query.py",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.16-02",
+      "section": "4.16",
+      "feature": "真实3D地球、国家区域聚合和点位抽屉",
+      "status": "未实现",
+      "result": "尚无3D渲染器；静态图或列表不算地球",
+      "evidence": "app/static/js/views.js: places",
+      "next": "按Globe.gl/MapLibre选型实现真实空间闭环"
+    },
+    {
+      "id": "WEB-4.16-03",
+      "section": "4.16",
+      "feature": "地球姿态、主题、遮挡、离线资源和手机手势",
+      "status": "未实现",
+      "result": "依赖真实地球功能",
+      "evidence": "docs/product-plan-v3.md: 4.16",
+      "next": "地球实现后专项验收"
+    },
+    {
+      "id": "WEB-4.17-01",
+      "section": "4.17",
+      "feature": "游客本机空间与登录不上传资料",
+      "status": "通过",
+      "result": "无账号可用；云登录只验证身份，不上传正文照片",
+      "evidence": "test_default_local_space_headers_and_removed_features；test_cloud_login_only_calls_auth_and_does_not_upload",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.17-02",
+      "section": "4.17",
+      "feature": "共同云真实登录、注册邮件、找回与会话续期",
+      "status": "部分通过",
+      "result": "登录BFF和受控请求测试存在；无真实公网账号闭环、刷新和真实邮件",
+      "evidence": "app/api/cloud.py；tests/test_local_android.py",
+      "next": "在可达同区共同云上完成真实账号路径"
+    },
+    {
+      "id": "WEB-4.17-03",
+      "section": "4.17",
+      "feature": "游客合并、换号清理、注销与空间找回",
+      "status": "未实现",
+      "result": "清Cookie会进入新空间，原数据无界面找回入口",
+      "evidence": "app/security.py: load_user；app/api/cloud.py",
+      "next": "设计安全归属和恢复，不恢复旧本地密码账号"
+    },
+    {
+      "id": "WEB-4.18-01",
+      "section": "4.18",
+      "feature": "权益和范围许可不足时阻止同步",
+      "status": "通过",
+      "result": "本机标志不能授予权益；缺共同服务能力时保持关闭",
+      "evidence": "test_client_flag_cannot_grant_entitlement_or_scoped_sync",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.18-02",
+      "section": "4.18",
+      "feature": "授权开启、方向范围预览、队列上传下载",
+      "status": "未实现",
+      "result": "共同服务尚缺有效权益和单次范围许可，资料同步未接通",
+      "evidence": "app/api/cloud.py；docs/cloud-sync.md",
+      "next": "服务端先提供授权契约，再完成队列、确认和重试"
+    },
+    {
+      "id": "WEB-4.18-03",
+      "section": "4.18",
+      "feature": "四种云冲突、删除传播和换机原图恢复",
+      "status": "未实现",
+      "result": "归档冲突复制不能代替联网同步",
+      "evidence": "app/api/cloud.py；app/services/archive.py",
+      "next": "验证双端编辑、离线删除、照片独立恢复"
+    },
+    {
+      "id": "WEB-4.19-01",
+      "section": "4.19",
+      "feature": "基础空间隔离、CSRF、不缓存和受保护导入拒绝",
+      "status": "通过",
+      "result": "普通资料授权约束；受保护格式不降级为明文导入",
+      "evidence": "tests/test_application.py；tests/test_local_android.py；app/__init__.py",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.19-02",
+      "section": "4.19",
+      "feature": "Web正文/原图加密、独立解锁和后台保护",
+      "status": "未实现",
+      "result": "未提供安卓同等级加密；旧保险箱实现已删除",
+      "evidence": "app/models.py；app/api/records.py；docs/requirements.md",
+      "next": "重新设计Web密钥、解锁、索引过滤及缓存保护"
+    },
+    {
+      "id": "WEB-4.19-03",
+      "section": "4.19",
+      "feature": "保险箱完整闭环及可选跨端密钥恢复",
+      "status": "未实现",
+      "result": "规划目标保留，但没有可用保险箱入口",
+      "evidence": "docs/product-plan-v3.md: 4.19；app/templates/index.html",
+      "next": "按完整锁定泄漏与恢复边界独立实现"
+    },
+    {
+      "id": "WEB-4.20-01",
+      "section": "4.20",
+      "feature": "原生普通JSON/ZIP预览、确认与原字节恢复",
+      "status": "通过",
+      "result": "JSON无原图，完整ZIP需校验；恢复保留原ID、日期、关系和原图",
+      "evidence": "test_actual_android_json_roundtrip_and_edit_preserve_raw_fields；test_actual_android_zip_restores_original_bytes_and_exports_valid_zip；tools/browser-check.cjs",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.20-02",
+      "section": "4.20",
+      "feature": "重复、冲突复制、缺图确认与目标变化复核",
+      "status": "通过",
+      "result": "重复跳过，同ID冲突需明确选择；目标变化不覆盖",
+      "evidence": "test_import_conflicts_copy_deterministically_without_overwrite；test_import_preview_rechecks_target_and_occupying_draft",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.20-03",
+      "section": "4.20",
+      "feature": "坏归档/路径穿越拒绝和暂存加密清理",
+      "status": "通过",
+      "result": "校验失败原子拒绝；暂存加密，显式放弃可清理",
+      "evidence": "test_zip_traversal_duplicate_and_changed_original_reject；test_stage_is_encrypted_and_explicit_discard_removes_it",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.20-04",
+      "section": "4.20",
+      "feature": "大归档、旧复杂格式和Android反向实机恢复",
+      "status": "部分通过",
+      "result": "JSON16MiB、ZIP128MiB；旧Web/受保护格式拒绝；无安卓反向实机证据",
+      "evidence": "app/services/archive_files.py；sync_contract.py；docs/verification.md",
+      "next": "按支持范围统一上限，并完成真实双端恢复验收"
+    },
+    {
+      "id": "WEB-4.21-01",
+      "section": "4.21",
+      "feature": "选定范围Markdown/HTML事件簿",
+      "status": "未实现",
+      "result": "目前仅全空间普通数据归档",
+      "evidence": "app/api/archive.py；app/static/js/views.js: archive",
+      "next": "实现选择、排版预览、敏感字段与原图范围"
+    },
+    {
+      "id": "WEB-4.21-02",
+      "section": "4.21",
+      "feature": "PDF/图片输出与系统分享",
+      "status": "未实现",
+      "result": "没有排版输出闭环；公开链接非自动承诺范围",
+      "evidence": "app/api/archive.py",
+      "next": "明确格式和授权后单独实现"
+    },
+    {
+      "id": "WEB-4.22-01",
+      "section": "4.22",
+      "feature": "我的、数据管理、回收站、草稿与两主题",
+      "status": "通过",
+      "result": "WARM/FOREST保存浏览器偏好；切换不改事实资料",
+      "evidence": "app/static/js/views.js；tools/browser-check.cjs",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.22-02",
+      "section": "4.22",
+      "feature": "主题下载、付费主题与恢复默认专页",
+      "status": "未实现",
+      "result": "仅两套内置主题",
+      "evidence": "app/static/js/views.js: appearance",
+      "next": "有真实主题资源和权益后实现"
+    },
+    {
+      "id": "WEB-4.22-03",
+      "section": "4.22",
+      "feature": "完整帮助、协议、反馈、偏好与可访问性",
+      "status": "部分通过",
+      "result": "已有关于与基础标签；缺完整渠道及大字/读屏验收",
+      "evidence": "app/templates/index.html；app/static/js/views.js: about",
+      "next": "补可用支持渠道、全页键盘/读屏和大字检查"
+    },
+    {
+      "id": "WEB-4.23-01",
+      "section": "4.23",
+      "feature": "商品、支付、订单核验与幂等权益发放",
+      "status": "未实现",
+      "result": "没有购买入口和真实商品；不靠主题或客户端标志授予权益",
+      "evidence": "app/api/cloud.py；docs/cloud-sync.md",
+      "next": "明确商品与渠道后实现服务端核验"
+    },
+    {
+      "id": "WEB-4.23-02",
+      "section": "4.23",
+      "feature": "恢复购买、到期退款、容量与支持",
+      "status": "未实现",
+      "result": "没有商业闭环",
+      "evidence": "docs/product-plan-v3.md: 4.23；app/api/cloud.py",
+      "next": "处理全状态并保障已有资料查看和导出"
+    },
+    {
+      "id": "WEB-4.24-01",
+      "section": "4.24",
+      "feature": "Flask API、迁移、配置向导与健康检查",
+      "status": "通过",
+      "result": "核心API及空库迁移经隔离检查；真实启动指向MySQL",
+      "evidence": "test_empty_database_migration_matches_current_models；tests/test_mysql_setup.py",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-4.24-02",
+      "section": "4.24",
+      "feature": "当前真实MySQL业务全套与生产环境",
+      "status": "待验证",
+      "result": "本轮基线运行SQLite；之前MySQL/CI证据不冒充本轮现场执行",
+      "evidence": "docs/verification.md；tests/conftest.py",
+      "next": "专用_test数据库和目标部署环境分别验收"
+    },
+    {
+      "id": "WEB-4.24-03",
+      "section": "4.24",
+      "feature": "公网HTTPS、真实邮件、监控审计和恢复演练",
+      "status": "未实现",
+      "result": "尚无完整生产与运营交付",
+      "evidence": "docs/cloud-sync.md；README.md",
+      "next": "集中明确服务配置与运营职责后实施"
+    },
+    {
+      "id": "WEB-8/9-01",
+      "section": "8/9",
+      "feature": "沿用用户指定Web/Android/共同云架构",
+      "status": "通过",
+      "result": "Web Flask/MySQL；Android SQLite/SQLCipher不改；共同云独立PostgreSQL",
+      "evidence": "docs/requirements.md；app/config.py；sync_contract.py",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-8/9-02",
+      "section": "8/9",
+      "feature": "区域隔离与跨端协议兼容",
+      "status": "部分通过",
+      "result": "普通归档地区与字段严格校验；真实多端云与新旧客户端尚未联调",
+      "evidence": "tests/test_local_android.py；sync_contract.py",
+      "next": "补同区真实双端、版本混用与新关系兼容"
+    },
+    {
+      "id": "WEB-WEB-I18N-01-01",
+      "section": "WEB-I18N-01",
+      "feature": "中英文选择、刷新持久化与移动入口",
+      "status": "通过",
+      "result": "2026-10-23补验：主页面和登录页可切换，390px入口可见",
+      "evidence": "tools/i18n-browser-check.cjs；tests/test_i18n.py",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-WEB-I18N-01-02",
+      "section": "WEB-I18N-01",
+      "feature": "现有视图、表单、系统文案、日期和错误提示",
+      "status": "通过",
+      "result": "2026-10-23补验：主要视图英文无遗漏中文系统文案；月精度双向显示",
+      "evidence": "tools/i18n-browser-check.cjs；app/locales/en.json",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-WEB-I18N-01-03",
+      "section": "WEB-I18N-01",
+      "feature": "用户原文、地区、协议值与归档保真",
+      "status": "通过",
+      "result": "2026-10-23补验：中文正文姓名保留，心情稳定枚举和归档事实不改变",
+      "evidence": "tests/test_i18n.py；tools/i18n-browser-check.cjs",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    },
+    {
+      "id": "WEB-WEB-I18N-01-04",
+      "section": "WEB-I18N-01",
+      "feature": "编辑切换保护和草稿跨语言恢复",
+      "status": "通过",
+      "result": "2026-10-23补验：编辑中阻止重载；保存草稿后换语言可恢复并提交",
+      "evidence": "tools/i18n-browser-check.cjs；docs/i18n.md",
+      "next": "无需补充本行已定义的本机行为；生产与实机另验"
+    }
+  ],
+  "modules": [
+    {
+      "section": "4.1",
+      "name": "4.1 首页",
+      "implementation": "部分实现",
+      "available": "近期图文、最近编辑、进行中/计划、草稿入口；统计进入真实查询",
+      "gap": "全页面最终视觉、用户手机体验未验收；阶段完整页未开放；脉络局部探索现已可用"
+    },
+    {
+      "section": "4.2",
+      "name": "4.2 新增、编辑、草稿",
+      "implementation": "核心已实现",
+      "available": "三种创作入口、统一文字多图编辑、600ms草稿、恢复/放弃、正式保存、同ID编辑；人物独立草稿",
+      "gap": "六入口中的那一天/影音/萌宠未实现；没有浏览器离线写入；阶段和长期投入选择页未开放"
+    },
+    {
+      "section": "4.3",
+      "name": "4.3 日期与状态",
+      "implementation": "部分实现",
+      "available": "日/月/年/范围/未知、时区、独立完成状态；计划转实际须确认实际日期且同ID",
+      "gap": "code24/25照片EXIF拍摄日辅助及空日期弹窗候选尚未对齐；完整周期/提醒未实现；扩展年份保真但新建年选项范围有限"
+    },
+    {
+      "section": "4.4",
+      "name": "4.4 照片与原图",
+      "implementation": "核心已实现",
+      "available": "每条最多10张，单图50MiB/100MP；保留原字节/顺序；批量失败不改已有输入；详情大图、切换、缩放/拖动、失败重试",
+      "gap": "无拖动排序/独立缩略图流水线；草稿放弃后的孤立照片回收待做；Web普通照片非安卓私有加密存储；云原图进度未做"
+    },
+    {
+      "section": "4.5",
+      "name": "4.5 统一详情、删除、回收站",
+      "implementation": "核心已实现",
+      "available": "各列表读取原记录、同ID编辑；删除不计普通查询、原ID恢复，关系原图保留",
+      "gap": "永久删除及资源回收未开放；未来专属类型详情未做；详情返回滚动位置不保证完整恢复"
+    },
+    {
+      "section": "4.6",
+      "name": "4.6 时间轴、日历",
+      "implementation": "核心已实现",
+      "available": "事件日期排序、翻月/跳月/选日、新增预填日期；粗精度单列，不画假某日标记",
+      "gap": "大范围/扩展年份日历交互不完整；返回筛选/月/选日有路由状态，滚动位置仍待补齐"
+    },
+    {
+      "section": "4.7",
+      "name": "4.7 搜索、筛选、统计",
+      "implementation": "核心已实现",
+      "available": "多关键词全部匹配；状态、进展、精度、重叠日期、标签、多人物；ALL与时间轴独立，空间加显示/坐标条件",
+      "gap": "无高级回顾/完整对象关系筛选；服务目前按空间载入后筛选，大数据量需分页和索引优化"
+    },
+    {
+      "section": "4.8",
+      "name": "4.8 人物",
+      "implementation": "核心已实现",
+      "available": "名称/意义、同名独立ID、搜索/编辑/聚焦、从人物预填经历；删除解绑不删记录原图",
+      "gap": "人物封面、完整资料、人物间关系网未做"
+    },
+    {
+      "section": "4.9",
+      "name": "4.9 宠物与物品",
+      "implementation": "未实现",
+      "available": "仅原生归档协议保留受支持对象字段",
+      "gap": "没有分类档案、生日/到家日、物品来源和完整经历路径；已删除旧Web泛对象管理入口"
+    },
+    {
+      "section": "4.10",
+      "name": "4.10 地点与工作等",
+      "implementation": "部分实现",
+      "available": "记录文字地点及精度；合法坐标/显示开关参与地点列表，0坐标有效，可打开原记录",
+      "gap": "独立地点/工作/自定义档案、定位授权、导航/天气未做；没有把work改成影音"
+    },
+    {
+      "section": "4.11",
+      "name": "4.11 影音",
+      "implementation": "未实现",
+      "available": "仅保留受支持原生协议数据",
+      "gap": "没有作品库、分类/评分、作品与经历独立的业务页"
+    },
+    {
+      "section": "4.12",
+      "name": "4.12 人生阶段",
+      "implementation": "未实现",
+      "available": "协议保留LifeChapter关系",
+      "gap": "无独立规划/回顾字段闭环、重叠阶段/候选确认/详情；旧Web阶段表单已删，不能算完成"
+    },
+    {
+      "section": "4.13",
+      "name": "4.13 长期投入/旅程",
+      "implementation": "未实现",
+      "available": "协议保留LifeThread语义及关系",
+      "gap": "无完整状态、容器详情、预填和阶段联动；旧Web线索界面已删"
+    },
+    {
+      "section": "4.14",
+      "name": "4.14 人生脉络",
+      "implementation": "局部探索与既有关系编辑已实现",
+      "available": "首页/侧栏/我的入口；现在有限邻域、逐层展开/分页/收起/聚焦、画布与列表、类型/时间筛选、原详情返回保留视口、来源说明、显式关联增删",
+      "gap": "新因果/人物间等关系语义、阶段/对象完整独立业务、布局跨端、海量性能/物理手机及云端验收未做；详见lifegraph.md"
+    },
+    {
+      "section": "4.15",
+      "name": "4.15 那一天/未来/提醒/回顾",
+      "implementation": "部分实现",
+      "available": "同源计划列表、待安排、取消/改期/转实际；日期过去不会自动完成；导入提醒元信息可保留",
+      "gap": "往年今天、纪念日页面、通知权限/调度/时区闰日、高级统计回顾未做；提醒元信息不启动通知"
+    },
+    {
+      "section": "4.16",
+      "name": "4.16 地球与空间",
+      "implementation": "部分实现",
+      "available": "地点列表和同源空间查询",
+      "gap": "真实3D、国家/区域聚合、点位抽屉/姿态、离线材质、详情定位跳转未做；旧示意地图已移除"
+    },
+    {
+      "section": "4.17",
+      "name": "4.17 账户、身份、游客",
+      "implementation": "部分实现",
+      "available": "无账号使用本机空间；共同账号同区登录BFF，登录不传正文/照片",
+      "gap": "无Web注册验证/真实邮件/找回、会话刷新、游客加入账户预览/合并、完整换号清理/注销；清Cookie不能界面找回原空间"
+    },
+    {
+      "section": "4.18",
+      "name": "4.18 同步、冲突、换机",
+      "implementation": "未实现云闭环",
+      "available": "云状态与拒绝保护；普通JSON/ZIP可手动交换",
+      "gap": "无权益/单次范围许可、队列上传下载、四种云冲突、原图独立状态和换机云恢复；归档冲突复制不能代替同步"
+    },
+    {
+      "section": "4.19",
+      "name": "4.19 隐私与保险箱",
+      "implementation": "基础隔离部分实现；保险箱已删除",
+      "available": "Cookie空间隔离、CSRF、归属约束、不缓存、受保护归档拒绝",
+      "gap": "未实现Web SQLCipher/端到端/原图加密、独立PIN/生物识别与恢复；不开放旧保险箱，也不把受保护资料降级普通记录"
+    },
+    {
+      "section": "4.20",
+      "name": "4.20 JSON/ZIP备份恢复",
+      "implementation": "普通资料已实现",
+      "available": "原生archiveVersion1；预览、明确确认、缺图确认、重复跳过、冲突保留两份、目标变化重预览；原图CRC/SHA/尺寸/类型校验；原ID/日期/关系/审计/墓碑保真",
+      "gap": "Web JSON16MiB、ZIP128MiB，上限小于Android；不支持旧Web schemaVersion1/2、任意旧富媒体/受保护备份；无手机反向恢复实机验收"
+    },
+    {
+      "section": "4.21",
+      "name": "4.21 事件簿、局部导出、分享",
+      "implementation": "未实现",
+      "available": "只有当前空间普通原始资料导出",
+      "gap": "无选定范围事件簿、Markdown/HTML阅读排版、PDF/图片、公开链接；原始归档不算事件簿"
+    },
+    {
+      "section": "4.22",
+      "name": "4.22 我的、外观、帮助",
+      "implementation": "部分实现",
+      "available": "我的/数据管理/回收站/草稿/外观/关于；WARM/FOREST；手机导航和桌面适配",
+      "gap": "主题下载/付费/恢复默认专页、完整协议/反馈渠道/通知偏好、大字和全页可访问性验收未完成"
+    },
+    {
+      "section": "4.23",
+      "name": "4.23 会员、支付、容量",
+      "implementation": "未实现",
+      "available": "不开放购买入口",
+      "gap": "商品、价格、渠道、订单核验、权益发放/恢复/到期/退款全部待做；不能用主题切换或本地标志授予权益"
+    },
+    {
+      "section": "4.24",
+      "name": "4.24 后端、支持、运营",
+      "implementation": "本机部分实现",
+      "available": "Flask API、MySQL迁移、F5运行、健康检查、隔离与异常保护；复用共同服务认证契约",
+      "gap": "无公网部署/HTTPS真实发信、完整区域运营、员工审计、支付支持、监控容量及生产恢复演练"
+    }
+  ],
+  "issues": [
+    [
+      "P01",
+      "共同服务缺权益及方向/范围许可",
+      "云同步始终关闭，配置URL或登录也不能完成跨端；无真实公网联调",
+      "共同后端先实现有效授权及事务许可，再对接Web队列/冲突/原图，实际双端验证"
+    ],
+    [
+      "P02",
+      "本机空间仅由Cookie定位",
+      "清Cookie/换浏览器会进入新空间；数据库原数据仍在，但当前无恢复入口",
+      "在后续W0设计安全解锁、空间恢复和账号明确归属，不恢复已淘汰本地账户实现"
+    ],
+    [
+      "P03",
+      "Web加密和离线能力不足",
+      "MySQL普通正文/原图未做安卓同等级加密；服务关闭时不可记录",
+      "独立定义Web加密、解锁/密钥、临时/离线缓存及清理方案"
+    ],
+    [
+      "P04",
+      "Android版本差异",
+      "本地code23无法证明code25日期辅助全量一致",
+      "获取可读的code25实现后按日期行为补齐并验收；本轮未操作安卓分支"
+    ],
+    [
+      "P05",
+      "归档和字段上限",
+      "ZIP128MiB；标题200字、人物名120字、ID100字符等，超过Web支持范围拒绝导入，不静默截断",
+      "为大归档分块/流式处理，统一跨端字段上限"
+    ],
+    [
+      "P06",
+      "草稿仍有浏览器关闭边界",
+      "只保证服务器确认“已保存在本机”的内容；突然退出前最后输入可能未落盘；无离线队列",
+      "后续持久离线写入、生命周期及多标签冲突体验"
+    ],
+    [
+      "P07",
+      "图片资源生命周期未完整",
+      "放弃草稿/移除引用的原图不会立即物理回收，避免误删仍引用的图片，但可能占空间",
+      "引用计数、延迟回收、显式清理范围和失败恢复"
+    ],
+    [
+      "P08",
+      "云会话管理不完整",
+      "access到期需重登；远端退出失败时暂不能完成本机独立清凭证",
+      "补刷新/撤销与离线退出状态处理，并保护换号画面"
+    ],
+    [
+      "P09",
+      "大档案性能与导航细节",
+      "无服务器分页、完整滚动恢复；超大日期范围交互不完整",
+      "定向性能样本和游标查询、返回上下文恢复"
+    ],
+    [
+      "P10",
+      "验收覆盖边界",
+      "自动化与Edge合成库已验，未执行Android实机反向恢复/跨端公网/生产/用户视觉验收",
+      "用真实用户路径单独验收，不把代码/测试数量当上线"
+    ]
+  ]
+}

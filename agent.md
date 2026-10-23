@@ -1,6 +1,12 @@
 # Everhere Web 开发大纲
 
-更新：2026-10-21。技术栈：Python / Flask、MySQL、HTML / CSS / JavaScript。中文注释。开始协作先读本文件、`docs/product-plan-v3.md`、`docs/feature-completion.md` 和对应接口。
+更新：2026-10-22。技术栈：Python / Flask、MySQL、HTML / CSS / JavaScript。中文注释。开始协作先读本文件、`docs/requirements.md`、`docs/product-plan-v3.md`、`docs/feature-completion.md` 和对应接口。
+
+## 当前需求与本轮交付（2026-10-22）
+
+用户确认《Everhere 完整产品总规划 v3》为当前产品 requirement，功能定义以原文为准，技术架构以此前用户约定及 `docs/requirements.md` 为准。原文中的 Android 实现状态不直接计作 Web 验收结果；未来完整保险箱属于需求，已淘汰的旧实现不得恢复。
+
+本轮检查现有功能并交付 Markdown 验收报告（docs/acceptance-2026-10-22.md，按用户最新要求替代并删除 Excel），同时完成当前 Web 界面的简体中文 / English 自由切换。语言只影响呈现与格式，不改变区域、账号、权益、协议枚举、日期精度和用户输入；偏好仅保留在当前浏览器。界面与 API 提示须覆盖，中文注释保留。自动化使用独立合成库，不删除现有真实资料，不修改 Android 工程。
 
 ## 当前授权与基准
 

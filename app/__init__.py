@@ -11,6 +11,7 @@ from werkzeug.exceptions import HTTPException
 from .config import settings
 from .extensions import db, limiter, migrate
 from .security import APIError, load_user
+from .i18n import error_message, translate, ui_locale
 
 
 @event.listens_for(Engine, "connect")
@@ -36,9 +37,13 @@ def create_app(test_config=None):
         app.register_blueprint(blueprint)
     app.before_request(load_user)
 
+    @app.context_processor
+    def language_context():
+        return {'_': translate, 'ui_locale': ui_locale()}
+
     @app.get("/")
     def index():
-        return render_template("index.html", user=g.user or {"name": "本机档案"})
+        return render_template("index.html", user=g.user or {"name": translate("本机档案")})
 
     @app.get("/login")
     def login():
@@ -57,6 +62,7 @@ def create_app(test_config=None):
 
     @app.after_request
     def secure_headers(response):
+        response.headers['Content-Language'] = ui_locale()
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "same-origin"
@@ -68,23 +74,23 @@ def create_app(test_config=None):
     @app.errorhandler(APIError)
     def api_error(error):
         db.session.rollback()
-        return jsonify(error={"code": error.code, "message": error.message}), error.status
+        return jsonify(error={"code": error.code, "message": error_message(error.message)}), error.status
 
     @app.errorhandler(IntegrityError)
     def conflict(error):
         db.session.rollback()
-        return jsonify(error={"code": "conflict", "message": "数据已存在或已被修改，请刷新后重试。"}), 409
+        return jsonify(error={"code": "conflict", "message": translate("数据已存在或已被修改，请刷新后重试。")}), 409
 
     @app.errorhandler(SQLAlchemyError)
     def database_error(error):
         db.session.rollback()
         # 不记录 SQL 参数，避免日记正文与密码进入日志。
         app.logger.error("数据库操作失败：%s", type(error).__name__)
-        return jsonify(error={"code": "database_unavailable", "message": "暂时无法保存或读取数据，请稍后重试。"}), 503
+        return jsonify(error={"code": "database_unavailable", "message": translate("暂时无法保存或读取数据，请稍后重试。")}), 503
 
     @app.errorhandler(HTTPException)
     def http_error(error):
         messages = {413: "文件过大，请缩小后重试。", 429: "尝试过于频繁，请稍后再试。", 404: "页面或资源不存在。", 405: "请求方法不支持。"}
-        return jsonify(error={"code": str(error.code), "message": messages.get(error.code, "请求无法完成。")}), error.code
+        return jsonify(error={"code": str(error.code), "message": translate(messages.get(error.code, "请求无法完成。"))}), error.code
 
     return app

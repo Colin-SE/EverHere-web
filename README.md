@@ -2,9 +2,15 @@
 
 使用 Python / Flask、MySQL 和原生 HTML / CSS / JavaScript，中文注释。现有核心记录流程参照安卓版，桌面侧栏和手机五项导航适配同一份资料。
 
-本次交付记录：[v1.1 更新记录](CHANGELOG.md)。
+本次交付记录：[v1.2 更新记录](CHANGELOG.md)。
 
 协作先读 [开发大纲](agent.md)、[产品总规划 v3](docs/product-plan-v3.md)、[功能完成度与问题](docs/feature-completion.md)。完整规划包含未来路线，不代表全部实现。
+
+当前功能需求以 [需求基准](docs/requirements.md) 为准，技术架构沿用 Flask/MySQL、安卓 SQLite 与独立共同云。逐项验收见 [Markdown 功能验收报告](docs/acceptance-2026-10-22.md)。
+
+## 中文与 English
+
+在页面顶部选择“简体中文”或“English”，登录页也可选择。浏览器记住语言，刷新后仍有效；手机首页同样保留入口。切换会重新加载当前页面，编辑或导入确认期间请先保存或关闭对话框。语言不会改变区域、日记正文、人物名称、心情协议值或归档资料。维护方法见 [语言适配说明](docs/i18n.md)。
 
 ## 在 VS Code 真实运行
 

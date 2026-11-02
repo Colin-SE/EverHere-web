@@ -984,5 +984,15 @@ export default {
   "章节标题": "Chapter heading",
   "商品说明": "Product description",
   "请求编号": "Request identifier",
-  "第 {number} 章": "Chapter {number}"
+  "第 {number} 章": "Chapter {number}",
+  "商品配图": "Product image",
+  "测试商品示意图": "Test product illustration",
+  "可选 JPEG、PNG 或 WebP，最多 5 MiB。配图会在商城公开展示，保存商品时一并上传。": "Optional JPEG, PNG or WebP, up to 5 MiB. Images are public in the shop and upload when you save the product.",
+  "移除配图": "Remove image",
+  "请先保存当前商品修改，再移除配图。": "Save your product changes before removing its image.",
+  "商品图片不能超过 5 MiB。": "Product images must be no larger than 5 MiB.",
+  "请选择不超过 1600 万像素的 JPEG、PNG 或 WebP 商品图片。": "Choose a JPEG, PNG or WebP product image of at most 16 megapixels.",
+  "商品图片无法读取，请选择有效图片。": "The product image cannot be read. Choose a valid image.",
+  "商品图片不存在。": "The product image does not exist.",
+  "请选择商品配图。": "Choose a product image."
 };

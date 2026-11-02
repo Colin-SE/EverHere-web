@@ -68,6 +68,9 @@ class Product(db.Model):
     name = db.Column(db.String(120), nullable=False)
     description = db.Column(db.String(2000), nullable=False, default='')
     active = db.Column(db.Boolean, nullable=False, default=False)
+    # 商品封面是管理员主动公开的图片，不复用用户的私人相册附件。
+    image_type = db.Column(db.String(40), nullable=True)
+    image_data = db.deferred(db.Column(db.LargeBinary().with_variant(LONGBLOB(), 'mysql'), nullable=True))
     version = db.Column(db.Integer, nullable=False, default=1)
 
 

@@ -1,8 +1,9 @@
 """F4 独立商城与订单确认；本阶段不提供付款或交付接口。"""
 from hashlib import sha256
 import json
+from io import BytesIO
 
-from flask import Blueprint, g
+from flask import Blueprint, g, request, send_file
 from sqlalchemy import select
 
 from ..extensions import db
@@ -10,6 +11,7 @@ from ..models import Photo
 from ..models_workflow import Member, Product, ProductVariant, ShopOrder, ShopOrderItem, Memoir, MemoirRevision
 from ..security import APIError, body, member_required, admin_required
 from ..services.records import text
+from ..services.product_images import prepare_cover, MAX_COVER_BYTES
 
 bp = Blueprint('shop', __name__, url_prefix='/api/v1')
 KINDS = {'medal', 'gift', 'memoir_digital', 'memoir_paper'}
@@ -25,6 +27,7 @@ def product_data(product, staff=False):
     if not staff:
         query = query.where(ProductVariant.active.is_(True))
     return {'id': product.id, 'name': product.name, 'description': product.description, 'active': product.active, 'version': product.version,
+            'imageUrl': f'/api/v1/shop/products/{product.id}/image?v={product.version}' if product.image_type else None,
             'variants': [variant_data(v) for v in db.session.scalars(query)]}
 
 
@@ -110,6 +113,47 @@ def update_product(product_id):
     if type(data.get('version')) is not int or data['version'] != product.version:
         raise APIError('商品已更新，请刷新后编辑。', 409, 'version_conflict')
     save_product(data, product)
+    product.version += 1
+    db.session.commit()
+    return {'data': product_data(product, True)}
+
+
+@bp.get('/shop/products/<product_id>/image')
+def product_image(product_id):
+    product = db.session.get(Product, product_id)
+    staff = g.member and g.member.role == 'admin'
+    if not product or not product.image_type or (not product.active and not staff):
+        raise APIError('商品图片不存在。', 404, 'not_found')
+    return send_file(BytesIO(product.image_data), mimetype=product.image_type, max_age=0)
+
+
+@bp.post('/admin/products/<product_id>/image')
+@admin_required
+def upload_product_image(product_id):
+    product = db.session.scalar(select(Product).where(Product.id == product_id).with_for_update().execution_options(populate_existing=True))
+    if not product:
+        raise APIError('商品不存在。', 404)
+    if request.form.get('version') != str(product.version):
+        raise APIError('商品已更新，请刷新后编辑。', 409, 'version_conflict')
+    file = request.files.get('image')
+    if not file:
+        raise APIError('请选择商品配图。', code='product_image')
+    product.image_data, product.image_type = prepare_cover(file.read(MAX_COVER_BYTES + 1))
+    product.version += 1
+    db.session.commit()
+    return {'data': product_data(product, True)}
+
+
+@bp.delete('/admin/products/<product_id>/image')
+@admin_required
+def remove_product_image(product_id):
+    data = body()
+    product = db.session.scalar(select(Product).where(Product.id == product_id).with_for_update().execution_options(populate_existing=True))
+    if not product:
+        raise APIError('商品不存在。', 404)
+    if type(data.get('version')) is not int or data['version'] != product.version:
+        raise APIError('商品已更新，请刷新后编辑。', 409, 'version_conflict')
+    product.image_data = product.image_type = None
     product.version += 1
     db.session.commit()
     return {'data': product_data(product, True)}

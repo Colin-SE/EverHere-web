@@ -1,0 +1,31 @@
+{
+  "tool": "built-in image_gen",
+  "transparent_background": false,
+  "images": [
+    {
+      "file": "medal.webp",
+      "prompt": "Use case: product-mockup. Asset type: square catalogue cover image for a private life-memory keepsake web shop. Create one polished photorealistic studio product image, no collage or multi-panel sheet. Cohesive art direction: warm ivory seamless background and tabletop, muted sage green and sand palette, soft natural side light, believable materials, subtle contact shadows, tasteful premium stationery aesthetics, clean uncluttered central composition with generous breathing room and the entire product visible. Not an advertisement: no price tags, no watermark, no logos, no visible people or faces, no readable words, no UI controls. These are fictional test-product illustrations, do not imply a real commercial brand. Subject: a gold and a brushed silver round commemorative travel medal side by side, with elegant minimal raised mountain and sun motifs and small cream and sage ribbon loops; one medal slightly overlaps the other, three-quarter view, finely machined metal and engraved details.",
+      "source_file": "medal.png"
+    },
+    {
+      "file": "keyring.webp",
+      "prompt": "Use case: product-mockup. Asset type: square catalogue cover image for a private life-memory keepsake web shop. Create one polished photorealistic studio product image, no collage or multi-panel sheet. Cohesive art direction: warm ivory seamless background and tabletop, muted sage green and sand palette, soft natural side light, believable materials, subtle contact shadows, tasteful premium stationery aesthetics, clean uncluttered central composition with generous breathing room and the entire product visible. Not an advertisement: no price tags, no watermark, no logos, no visible people or faces, no readable words, no UI controls. These are fictional test-product illustrations, do not imply a real commercial brand. Subject: two personalised commemorative keychains lying on the tabletop: one round warm walnut wooden keychain with a simple mountain engraving and one rounded transparent acrylic photo keychain containing an anonymous scenic mountain lake photograph, both with realistic small brushed brass key rings, top-down three-quarter product photography.",
+      "source_file": "keyring.png"
+    },
+    {
+      "file": "postcards.webp",
+      "prompt": "Use case: product-mockup. Asset type: square catalogue cover image for a private life-memory keepsake web shop. Create one polished photorealistic studio product image, no collage or multi-panel sheet. Cohesive art direction: warm ivory seamless background and tabletop, muted sage green and sand palette, soft natural side light, believable materials, subtle contact shadows, tasteful premium stationery aesthetics, clean uncluttered central composition with generous breathing room and the entire product visible. Not an advertisement: no price tags, no watermark, no logos, no visible people or faces, no readable words, no UI controls. These are fictional test-product illustrations, do not imply a real commercial brand. Subject: a neatly fanned set of ten matte off-white travel memory postcards, scenic images of sea coast, mountains, a quiet forest and sunset printed as small tasteful photographs, subtle unprinted margins, natural paper texture, one postcard turned over showing empty address lines with no readable text. Flat-lay product photo, gentle sage accent.",
+      "source_file": "postcards.png"
+    },
+    {
+      "file": "ebook.webp",
+      "prompt": "Use case: product-mockup. Asset type: square catalogue cover image for a private life-memory keepsake web shop. Create one polished photorealistic studio product image, no collage or multi-panel sheet. Cohesive art direction: warm ivory seamless background and tabletop, muted sage green and sand palette, soft natural side light, believable materials, subtle contact shadows, tasteful premium stationery aesthetics, clean uncluttered central composition with generous breathing room and the entire product visible. Not an advertisement: no price tags, no watermark, no logos, no visible people or faces, no readable words, no UI controls. These are fictional test-product illustrations, do not imply a real commercial brand. Subject: a thin unbranded tablet in landscape orientation on a small muted sage stand, screen showing an elegant open two-page digital memoir with one scenic coastal photograph and warm ivory pages, tiny abstract grey typographic lines that are not readable, realistic glare-free screen, a discreet stylus alongside. Make the tablet clearly the central product representing an electronic memoir, not a physical book.",
+      "source_file": "ebook.png"
+    },
+    {
+      "file": "paperbook.webp",
+      "prompt": "Use case: product-mockup. Asset type: square catalogue cover image for a private life-memory keepsake web shop. Create one polished photorealistic studio product image, no collage or multi-panel sheet. Cohesive art direction: warm ivory seamless background and tabletop, muted sage green and sand palette, soft natural side light, believable materials, subtle contact shadows, tasteful premium stationery aesthetics, clean uncluttered central composition with generous breathing room and the entire product visible. Not an advertisement: no price tags, no watermark, no logos, no visible people or faces, no readable words, no UI controls. These are fictional test-product illustrations, do not imply a real commercial brand. Subject: a premium linen-bound sage green physical personal memoir book, closed and angled with a visible thick cream page block and an embossed minimal mountain-and-sun motif with no lettering, plus an open matching physical book behind showing warm cream paper and a scenic coastal photograph, tactile cloth binding and high quality paper, three-quarter studio product photography.",
+      "source_file": "paperbook.png"
+    }
+  ]
+}

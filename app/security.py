@@ -6,6 +6,8 @@ from flask import g, request, session
 
 from .extensions import db
 from .models import LocalSpace
+from .models_workflow import SpaceOwnership
+from flask_login import current_user
 from sqlalchemy import select
 
 
@@ -21,19 +23,34 @@ def csrf_token():
 
 
 def load_user():
-    g.user = None
     if request.path.startswith('/static/') or request.path == '/health':
-        g.owner = None
+        # 静态资源不加载登录会话，避免并发资源响应写回过时的身份/CSRF Cookie。
+        g.member = g.user = g.owner = None
         return
+    g.member = current_user._get_current_object() if current_user.is_authenticated else None
+    g.user = {'id': g.member.id, 'name': g.member.name, 'email': g.member.email, 'role': g.member.role} if g.member else None
     owner_id = session.get('space_id')
     g.owner = db.session.get(LocalSpace, owner_id) if owner_id else None
+    # 已归入账户的空间，旧访客 Cookie 立即失去权限；登录也不会自动认领访客资料。
+    ownership = db.session.get(SpaceOwnership, owner_id) if owner_id else None
+    if ownership and (not g.member or ownership.member_id != g.member.id):
+        g.owner = None
+    if g.member and not g.owner:
+        link = db.session.scalar(select(SpaceOwnership).where(SpaceOwnership.member_id == g.member.id).order_by(SpaceOwnership.space_id))
+        if link:
+            g.owner = db.session.get(LocalSpace, link.space_id)
+            session['space_id'] = g.owner.id
+            session['space_version'] = g.owner.access_version
     if g.owner and session.get('space_version') != g.owner.access_version:
-        session.clear()
+        session.pop('space_id', None)
+        session.pop('space_version', None)
         g.owner = None
     if g.owner is None:
-        session.clear()
         g.owner = LocalSpace()
         db.session.add(g.owner)
+        db.session.flush()
+        if g.member:
+            db.session.add(SpaceOwnership(space_id=g.owner.id, member_id=g.member.id))
         db.session.commit()
         session['space_id'] = g.owner.id
         session['space_version'] = g.owner.access_version
@@ -49,6 +66,25 @@ def load_user():
 def local_required(func):
     @wraps(func)
     def wrapped(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapped
+
+
+def member_required(func):
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        if not g.member:
+            raise APIError('请先登录账户。', 401, 'login_required')
+        return func(*args, **kwargs)
+    return wrapped
+
+
+def admin_required(func):
+    @wraps(func)
+    @member_required
+    def wrapped(*args, **kwargs):
+        if g.member.role != 'admin':
+            raise APIError('此操作需要管理员权限。', 403, 'admin_required')
         return func(*args, **kwargs)
     return wrapped
 

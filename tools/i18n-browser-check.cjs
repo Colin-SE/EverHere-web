@@ -6,7 +6,9 @@ const fs=require('node:fs/promises');
  const browser=await chromium.launch({headless:true,channel:'msedge'});
  const context=await browser.newContext({viewport:{width:1440,height:1000},acceptDownloads:true});
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
- const base=process.env.TEST_BASE_URL||'http://127.0.0.1:5003';assert.match(base,/^http:\/\/(127\.0\.0\.1|localhost):5003$/);
+ const base=process.env.TEST_BASE_URL||'http://127.0.0.1:5003';assert.match(base,/^http:\/\/(127\.0\.0\.1|localhost):(5003|5004)$/);
+ // F1—F4 的隔离服务器使用 5004；仍须确认是 SQLite 合成环境，不能向 MySQL 日常库写验收资料。
+ assert.equal((await (await page.request.get(base+'/health')).json()).database,'sqlite');
  const nav=async view=>{await page.locator(`#sidebar [data-view="${view}"]`).click();await page.waitForFunction(()=>!document.querySelector('#view-content .loading-state'));};
  const language=async value=>{await page.locator('[data-language-select]').selectOption(value);await page.waitForFunction(v=>document.documentElement.lang===v,value);await page.waitForFunction(()=>!document.querySelector('#view-content .loading-state'));};
  const noChinese=async label=>{

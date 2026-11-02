@@ -17,6 +17,9 @@
     <a class="brand" href="/"><img src="{{ url_for('static', filename='images/mobile/app_icon.svg') }}" alt=""><span>{{ _("人生相册") }}<small>{{ _("我的私人生命档案") }}</small></span></a>
     <div class="workspace-label">{{ _("过去 · 现在 · 未来") }} <i></i></div>
     <nav class="main-nav" aria-label="{{ _("主要导航") }}">
+      <a href="/workspace#memoirs" class="nav-item">{{ _('回忆录') }}</a>
+      <a href="/workspace#shop" class="nav-item">{{ _('文创商城') }}</a>
+      <a href="/workspace#account" class="nav-item">{{ _('网站账户') }}</a>
       <button data-view="home" class="nav-item active"><i data-icon="home"></i><span>{{ _("首页 · 我的生活") }}</span><i class="nav-dot"></i></button>
       <button data-view="timeline" class="nav-item"><i data-icon="list"></i><span>{{ _("人生记录") }}</span></button>
       <button data-view="calendar" class="nav-item"><i data-icon="calendar"></i><span>{{ _("日历回看") }}</span></button>

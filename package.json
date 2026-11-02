@@ -5,10 +5,12 @@
   "scripts": {
     "test:browser": "node tools/browser-check.cjs",
     "test:graph": "node tools/lifegraph-state-check.mjs",
-    "test:i18n": "node tools/i18n-browser-check.cjs"
+    "test:i18n": "node tools/i18n-browser-check.cjs",
+    "test:workflows": "node tools/workflows-browser-check.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"
   },
-  "type": "module"
+  "type": "module",
+  "version": "2.0.0"
 }

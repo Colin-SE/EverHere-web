@@ -30,3 +30,6 @@ waitress==3.0.2
 Werkzeug==3.1.9
 wrapt==2.5.1
 tzdata==2026.5
+Flask-Login==0.6.3
+reportlab==4.5.1
+charset-normalizer==3.5.2

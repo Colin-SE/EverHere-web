@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.exceptions import HTTPException
 
 from .config import settings
-from .extensions import db, limiter, migrate
+from .extensions import db, limiter, migrate, login_manager
 from .security import APIError, load_user
 from .i18n import error_message, translate, ui_locale
 
@@ -23,6 +23,9 @@ def sqlite_foreign_keys(connection, _):
 
 def create_app(test_config=None):
     app = Flask(__name__)
+    # 静态图片等并发响应不得刷新旧 Cookie，覆盖刚建立的身份或 CSRF。
+    # 动态请求由 load_user 显式更新永久会话，保持七天活动期限。
+    app.config['SESSION_REFRESH_EACH_REQUEST'] = False
     if test_config is None:
         app.config.update(settings())
     else:
@@ -32,8 +35,14 @@ def create_app(test_config=None):
     db.init_app(app)
     migrate.init_app(app, db)
     limiter.init_app(app)
-    from .api import archive, auth, cloud, drafts, graph, lifegraph, records
-    for blueprint in (auth.bp, records.bp, graph.bp, archive.bp, cloud.bp, drafts.bp, lifegraph.bp):
+    login_manager.init_app(app)
+    from .models_workflow import Member
+
+    @login_manager.user_loader
+    def member_loader(member_id):
+        return db.session.get(Member, member_id)
+    from .api import archive, auth, cloud, drafts, graph, lifegraph, records, accounts, memoirs, shop
+    for blueprint in (auth.bp, records.bp, graph.bp, archive.bp, cloud.bp, drafts.bp, lifegraph.bp, accounts.bp, memoirs.bp, shop.bp):
         app.register_blueprint(blueprint)
     app.before_request(load_user)
 
@@ -51,6 +60,13 @@ def create_app(test_config=None):
             return redirect(url_for("index"))
         return render_template("login.html")
 
+    @app.get('/workspace')
+    def workspace():
+        return render_template('workspace.html')
+
+    from .cli import register_commands
+    register_commands(app)
+
     @app.get("/health")
     def health():
         try:
@@ -67,7 +83,7 @@ def create_app(test_config=None):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "same-origin"
         response.headers["Content-Security-Policy"] = "default-src 'self'; img-src 'self' blob: data:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
-        if request.path.startswith(("/api/", "/login")) or request.path == "/":
+        if request.path.startswith(("/api/", "/login", "/workspace")) or request.path == "/":
             response.headers["Cache-Control"] = "no-store, private"
         return response
 

@@ -388,5 +388,5 @@ window.addEventListener('everhere:language-request',event=>{
 });
 try{
   try{const theme=localStorage.getItem('everhere-theme');state.theme=theme==='FOREST'?'FOREST':'WARM';}catch{}document.documentElement.dataset.theme=state.theme;restoreRoute();
-  const session=await getSession();state.cloudAccount=!!session.user;state.user=session.user||{name:t('本机档案'),email:t('本机资料空间 · 云同步默认关闭')};state.region=session.region||'cn';updateNav();await load();
+  const session=await getSession();state.cloudAccount=!!session.user;state.member=session.member;state.user=session.member||session.user||{name:t('本机档案'),email:t('本机资料空间 · 云同步默认关闭')};state.region=session.region||'cn';updateNav();await load();
 }catch(error){content.innerHTML=h`<div class="error-state">${esc(error.message)}<br><button class="button small" data-action="retry">重新加载</button></div>`;}

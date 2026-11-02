@@ -12,4 +12,4 @@ bp = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
 def current():
     connection = db.session.get(CloudConnection, g.owner.id)
     user = {'id': connection.account_id, 'name': connection.email.split('@')[0], 'email': connection.email} if connection else None
-    return {'data': {'user': user, 'csrfToken': csrf_token(), 'region': current_app.config.get('CLOUD_REGION', 'cn'), 'cloudConfigured': bool(current_app.config.get('CLOUD_API_URL'))}}
+    return {'data': {'user': user, 'member': g.user, 'csrfToken': csrf_token(), 'region': current_app.config.get('CLOUD_REGION', 'cn'), 'cloudConfigured': bool(current_app.config.get('CLOUD_API_URL'))}}

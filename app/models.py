@@ -24,7 +24,7 @@ class LocalSpace(db.Model):
 
 
 class CloudConnection(db.Model):
-    """凭证只留在本机数据库，不放入浏览器 Cookie 或日志。"""
+    """停用表的结构兼容模型，不注册云连接接口或读取旧凭证。"""
     __tablename__ = "cloud_connections"
     id = db.Column(db.String(36), db.ForeignKey("local_spaces.id", ondelete="CASCADE"), primary_key=True)
     account_id = db.Column(db.String(36), nullable=False)
@@ -74,7 +74,7 @@ class LifeNode(db.Model):
 
 
 class Reminder(db.Model):
-    """仅保留安卓版既有提醒元信息，不在 Web 启动通知调度。"""
+    """仅保留旧资料结构，无提醒或通知产品接口。"""
     __tablename__ = "reminders"
     __table_args__ = (db.UniqueConstraint("owner_id", "source_id"),)
     id = db.Column(db.String(36), primary_key=True, default=new_id)
@@ -84,7 +84,7 @@ class Reminder(db.Model):
 
 
 class ArchiveJob(db.Model):
-    """只读预览与恢复回执；文件只在实例私有目录按随机 ID 暂存。"""
+    """停用归档任务表的结构兼容模型，不再提供导入导出或恢复接口。"""
     __tablename__ = "archive_jobs"
     id = db.Column(db.String(36), primary_key=True, default=new_id)
     owner_id = db.Column(db.String(36), db.ForeignKey("local_spaces.id", ondelete="CASCADE"), nullable=False, index=True)

@@ -1,8 +1,10 @@
-"""从冻结材料生成固定版式成品及带预览标记的版本，不访问原始相册。"""
+"""从冻结材料制作成品；样张仅复制部分页面，绝不附带完整 PDF。"""
 from io import BytesIO
 from xml.sax.saxutils import escape
 
 from PIL import Image as PILImage, ImageOps
+from pypdf import PdfReader, PdfWriter
+from reportlab.pdfgen import canvas as pdfcanvas
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.styles import ParagraphStyle
@@ -12,6 +14,8 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, 
 
 
 def render_pdf(snapshot, assets, layout, preview=False):
+    if preview:
+        return sample_pdf(render_pdf(snapshot, assets, layout))
     if 'STSong-Light' not in pdfmetrics.getRegisteredFontNames():
         pdfmetrics.registerFont(UnicodeCIDFont('STSong-Light'))
     stream = BytesIO()
@@ -48,10 +52,29 @@ def render_pdf(snapshot, assets, layout, preview=False):
         canvas.setFont('Helvetica', 9)
         canvas.setFillColor(colors.HexColor('#6d6159'))
         canvas.drawRightString(550, 28, str(doc.page))
-        if preview:
-            canvas.drawString(45, 28, 'EVERHERE - PREVIEW / NOT A PURCHASED EDITION')
         canvas.restoreState()
 
     SimpleDocTemplate(stream, pagesize=(595.28, 841.89), rightMargin=50, leftMargin=50, topMargin=55, bottomMargin=55,
                       title=snapshot['title'], author='Everhere').build(story, onFirstPage=page_label, onLaterPages=page_label)
     return stream.getvalue()
+
+
+def sample_pdf(final):
+    """最多两页，且至少保留一页不公开；两页短稿只展示封面。"""
+    reader = PdfReader(BytesIO(final))
+    if len(reader.pages) < 2:
+        raise ValueError('成品至少需要封面和一页正文。')
+    writer = PdfWriter()
+    for page in list(reader.pages)[:min(2, len(reader.pages) - 1)]:
+        sample_page = writer.add_page(page, excluded_keys=['/Annots', '/B'])
+        overlay = BytesIO()
+        label = pdfcanvas.Canvas(overlay, pagesize=(float(page.mediabox.width), float(page.mediabox.height)))
+        label.setFont('Helvetica', 8)
+        label.drawString(45, 40, 'EVERHERE - SAMPLE PAGES ONLY / NOT A PURCHASED EDITION')
+        label.save()
+        sample_page.merge_page(PdfReader(overlay).pages[0])
+        # 不从原 PDF 复制书签、附件或其余页面引用。
+    writer.add_metadata({'/Title': 'Everhere sample preview', '/Author': 'Everhere'})
+    output = BytesIO()
+    writer.write(output)
+    return output.getvalue()

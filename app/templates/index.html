@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/native.css') }}">
   <script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/parity.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/lifegraph.css') }}">
 </head>
 <body data-current-view="home">
   <a href="#main" class="skip-link">{{ _("跳转至内容") }}</a>
@@ -26,15 +25,12 @@
       <button data-view="places" class="nav-item"><i data-icon="globe"></i><span>{{ _("地点") }}</span></button>
       <button data-view="upcoming" class="nav-item"><i data-icon="sun"></i><span>{{ _("即将到来") }}</span></button>
       <div class="nav-label">{{ _("人生的连接") }}</div>
-      <button data-view="lifegraph" class="nav-item"><i data-icon="thread"></i><span>{{ _("人生脉络") }}</span></button>
       <button data-view="entities" class="nav-item"><i data-icon="people"></i><span>{{ _("人物") }}</span></button>
       <button data-view="all" class="nav-item"><i data-icon="list"></i><span>{{ _("全部记录") }}</span></button>
       <button data-view="drafts" class="nav-item"><i data-icon="edit"></i><span>{{ _("本机草稿") }}</span></button>
       <button data-view="trash" class="nav-item"><i data-icon="trash"></i><span>{{ _("回收站") }}</span></button>
-      <button data-view="appearance" class="nav-item"><i data-icon="sun"></i><span>{{ _("外观") }}</span></button>
       <div class="nav-divider"></div>
       <button data-view="mine" class="nav-item"><i data-icon="people"></i><span>{{ _("我的") }}</span></button>
-      <button data-view="archive" class="nav-item"><i data-icon="archive"></i><span>{{ _("数据管理") }}</span></button>
     </nav>
     <div class="sidebar-bottom"><div class="little-quote"><i data-icon="sprout"></i><p>{{ _("过去，现在和未来，") }}<br>{{ _("都是我的人生。") }}</p></div><button class="profile" id="profile-button" aria-label="{{ _("打开我的页面") }}"><span class="avatar">{{ user.name[0] }}</span><span><b>{{ user.name }}</b><small>{{ _("资料仅自己可见") }}</small></span><i data-icon="chevron"></i></button></div>
   </aside>

@@ -1,7 +1,5 @@
 """测试仅使用内存库或名称以 _test 结尾的专用库；不创建历史资料备份。"""
 import os
-from pathlib import Path
-from uuid import uuid4
 
 import pytest
 from flask_migrate import upgrade
@@ -16,8 +14,7 @@ def app():
     uri = os.environ.get('TEST_DATABASE_URL', 'sqlite://')
     if not uri.startswith('sqlite:') and not (make_url(uri).database or '').endswith('_test'):
         raise RuntimeError('TEST_DATABASE_URL 只能连接名称以 _test 结尾的专用库。')
-    stage = Path.cwd() / 'test-results' / ('stage-' + str(uuid4()))
-    application = create_app({'SQLALCHEMY_DATABASE_URI': uri, 'SESSION_COOKIE_SECURE': False, 'ARCHIVE_STAGE_DIRECTORY': str(stage)})
+    application = create_app({'SQLALCHEMY_DATABASE_URI': uri, 'SESSION_COOKIE_SECURE': False})
     with application.app_context():
         if uri.startswith('sqlite:'):
             db.create_all()
@@ -34,12 +31,6 @@ def app():
                 db.session.execute(table.delete())
             db.session.commit()
             db.engine.dispose()
-        if stage.exists():
-            assert stage.resolve().is_relative_to((Path.cwd() / 'test-results').resolve())
-            for generated in stage.iterdir():
-                assert generated.is_file() and generated.suffix == '.bin'
-                generated.unlink()
-            stage.rmdir()
 
 
 

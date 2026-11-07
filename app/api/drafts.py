@@ -42,7 +42,7 @@ def raw_values(value, previous=None):
     photos = result.get('photoUris', [])
     if not isinstance(photos, list) or len(photos) > 10 or any(not isinstance(uri, str) for uri in photos):
         raise APIError('每条草稿最多 10 张照片。')
-    validate_photos(photos, False, (previous or {}).get('photoUris', []))
+    validate_photos(photos, (previous or {}).get('photoUris', []))
     return result
 
 

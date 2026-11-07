@@ -27,7 +27,5 @@ def settings():
         "PERMANENT_SESSION_LIFETIME": timedelta(days=7),
         "MAX_CONTENT_LENGTH": 520 * 1024 * 1024,
         "RATELIMIT_STORAGE_URI": os.getenv("RATELIMIT_STORAGE_URI", "memory://"),
-        "CLOUD_API_URL": os.getenv("CLOUD_API_URL", ""),
-        "CLOUD_REGION": os.getenv("CLOUD_REGION", "cn"),
         "EVENT_TIMEZONE": os.getenv("EVENT_TIMEZONE", "Asia/Shanghai"),
     }

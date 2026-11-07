@@ -1,5 +1,7 @@
 # Everhere Web 开发大纲
 
+> **2026-11-08 范围更新：** 用户明确要求仅按设计报告 F1—F4 重构，F5 不做。人生脉络、共同云连接、Android 归档导入导出及主题切换已从当前界面、接口和专用源码移除。预览只提供部分样张。当前规则见 [重构功能对照](docs/report-f1-f4-scope.md)；下文保留历史实施信息，冲突时以新范围与当前代码为准。
+
 更新：2026-11-02。技术栈：Python / Flask、MySQL、HTML / CSS / JavaScript。中文注释。开始协作先读本文件、`docs/requirements.md`、`docs/product-plan-v3.md`、`docs/feature-completion.md` 和对应接口。
 
 ## 工作目录（用户于 2026-11-02 指定）

@@ -2,11 +2,11 @@
 
 import math
 import re
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from uuid import uuid4
 
 from flask import g
-from sqlalchemy import or_, select
+from sqlalchemy import select
 
 from ..extensions import db
 from ..models import LifeNode, LifeRecord, Photo, RecordNode, now
@@ -55,41 +55,12 @@ def string_list(value, label, max_items=50, max_length=100):
     return list(dict.fromkeys(text(item, label, max_length) for item in value if item != ""))
 
 
-def archive_timestamp(value, label):
-    if value is None:
-        return None
-    if not isinstance(value, str):
-        raise APIError(f"{label}格式无效。")
-    try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        if parsed.tzinfo is not None:
-            parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
-        return parsed
-    except ValueError:
-        raise APIError(f"{label}格式无效。") from None
-
-
-def normalize_record(raw, importing=False):
+def normalize_record(raw):
     if not isinstance(raw, dict):
         raise APIError("人生记录必须是对象。")
     if raw.get("isPrivate") not in (None, False) or raw.get("privacy", "standard") != "standard":
         raise APIError("当前只支持普通资料；旧保险箱功能已删除。")
-    if importing and raw.get("androidDocument") is not None:
-        from sync_contract import document
-        native = document(raw["androidDocument"])
-        if native["type"] != "record" or native["id"] != raw.get("id"):
-            raise APIError("Android 资料标识不一致。")
-        # 只作现有视图投影，原日期/时区/重复标签/毫秒字符串完整留在同一行。
-        text(native["title"], "标题", 200)
-        text(native["content"], "正文", 100000)
-        from sync_contract import native_projection
-        result = native_projection({"documents": [native]})["records"][0]
-        result["source"] = "android"
-        return result
-    if importing:
-        archive_timestamp(raw.get("createdAt"), "原创建时间")
-        archive_timestamp(raw.get("updatedAt"), "原修改时间")
-    result = dict(raw) if importing else {}
+    result = {}
     result["title"] = text(raw.get("title", ""), "标题")
     result["content"] = raw.get("content", "")
     text(result["content"], "正文", 100000)
@@ -134,7 +105,7 @@ def normalize_record(raw, importing=False):
         result[key] = value
     result.pop("isPrivate", None)
     result["privacy"] = "standard"
-    result["source"] = "imported" if importing else "manual"
+    result["source"] = "manual"
     return result
 
 
@@ -156,52 +127,44 @@ def owned_record(source_id, include_deleted=False):
     return record
 
 
-def validate_photos(uris, importing, previous=None):
+def validate_photos(uris, previous=None):
     for uri in uris:
         if previous and uri in previous:
             continue
         if uri.startswith("/api/v1/photos/"):
             photo = db.session.get(Photo, uri.rsplit("/", 1)[-1])
             if not photo or photo.user_id != g.owner.id:
-                if importing:
-                    # 保留外部引用，前端不会自动请求导入的远程资源。
-                    continue
                 raise APIError("照片不存在或不属于当前用户。")
-        elif not importing:
+        else:
             raise APIError("请使用本应用上传的照片。")
 
 
-def save_record(raw, record=None, importing=False, source_id=None):
+def save_record(raw, record=None, source_id=None):
     previous = dict(record.payload) if record else {}
     if record and record.is_deleted:
         raise APIError("记录已移入回收站，请先恢复，编辑内容仍可保留为草稿。", 409, "record_deleted")
-    merged = {**previous, **raw} if not importing else raw
-    value = normalize_record(merged, importing)
+    merged = {**previous, **raw}
+    value = normalize_record(merged)
     if record and record.record_state == "planned" and value["recordState"] == "occurred":
         if raw.get("actualDateConfirmed") is not True or value["datePrecision"] == "unknown":
             raise APIError("计划转为已发生时，请补充并明确确认实际发生日期。", 409, "actual_date_required")
-    validate_photos(value["photoUris"], importing, record.payload.get("photoUris", []) if record else None)
+    validate_photos(value["photoUris"], record.payload.get("photoUris", []) if record else None)
     nodes = []
     for kind, field in KINDS.items():
         for node_id in value[field]:
-            node = db.session.scalar(select(LifeNode).where(LifeNode.user_id == g.owner.id, LifeNode.kind == kind, LifeNode.source_id == node_id, True if importing else LifeNode.is_deleted.is_(False)))
+            node = db.session.scalar(select(LifeNode).where(LifeNode.user_id == g.owner.id, LifeNode.kind == kind, LifeNode.source_id == node_id, LifeNode.is_deleted.is_(False)))
             if not node:
                 raise APIError("记录引用了不存在的对象、线索或阶段。")
             nodes.append(node)
     if record is None:
         record = LifeRecord(user_id=g.owner.id, source_id=source_id or str(uuid4()))
-        if importing:
-            record.created_at = archive_timestamp(raw.get("createdAt"), "原创建时间") or now()
-            record.updated_at = archive_timestamp(raw.get("updatedAt"), "原修改时间") or record.created_at
         db.session.add(record)
     else:
         record.version += 1
         record.updated_at = now()
     record.title, record.content = value["title"], value["content"]
     record.record_state, record.privacy = value["recordState"], "standard"
-    native = value.get("androidDocument") if importing else previous.get("androidDocument")
-    if importing and native:
-        record.is_deleted = native["deletedAt"] is not None
+    native = previous.get("androidDocument")
     try:
         record.event_date = date.fromisoformat(value["eventStartAt"]) if value["datePrecision"] in ("day", "range") else None
     except (ValueError, TypeError):
@@ -212,17 +175,16 @@ def save_record(raw, record=None, importing=False, source_id=None):
         from copy import deepcopy
         source = deepcopy(native)
         record.payload = {**record.payload, "androidDocument": source}
-        if not importing:
-            from .android_archive import record_document, millis
-            source["updatedAt"] = millis(record.updated_at)
-            # 记录关系重建后再生成文档，不能使用旧关联清单。
+        from .record_documents import millis
+        source["updatedAt"] = millis(record.updated_at)
+        # 记录关系重建后再生成文档，不能使用旧关联清单。
     # 先清空关联行，避免同一事务重建关系时违反唯一约束。
     record.links.clear()
     db.session.flush()
     record.links = [RecordNode(node_id=node.id) for node in nodes]
     db.session.flush()
-    if native and not importing:
-        from .android_archive import record_document
+    if native:
+        from .record_documents import record_document
         record.payload = {**record.payload, "androidDocument": record_document(record)}
     return record
 

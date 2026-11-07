@@ -1,18 +1,17 @@
-"""普通归档的共同有类型文档，原始审计与照片顺序始终保留。"""
+"""既有记录的元数据维护；仅供保存、软删除和人物解绑使用。"""
 import hashlib
-from datetime import datetime, timezone
+from datetime import datetime
 from io import BytesIO
 
 from flask import current_app, g
 from PIL import Image
-from sqlalchemy import select
 
 from ..extensions import db
-from ..models import LifeNode, LifeRecord, Photo, Reminder
+from ..models import Photo
 from ..security import APIError
 from .records import record_data
 from .record_query import record_date
-from sync_contract import android_json, document
+from .record_schema import document
 
 
 def millis(value):
@@ -69,26 +68,3 @@ def node_document(node):
             start, end = node.payload.get('startDate'), node.payload.get('endDate')
             common.update(eventDate=original.get('eventDate', {'precision': 'range' if start and end else 'day' if start else 'unknown', 'start': start, 'end': end}), threadIds=original.get('threadIds', []))
     return document(common)
-
-
-def documents():
-    result = []
-    for kind in ('entities', 'threads', 'chapters'):
-        result.extend(node_document(node) for node in db.session.scalars(select(LifeNode).where(LifeNode.user_id == g.owner.id, LifeNode.kind == kind).order_by(LifeNode.source_id)))
-    result.extend(record_document(row) for row in db.session.scalars(select(LifeRecord).where(LifeRecord.user_id == g.owner.id).order_by(LifeRecord.source_id)))
-    return result
-
-
-def export_android():
-    docs = documents()
-    ordinary_ids={doc['id'] for doc in docs if doc['type']=='record'}
-    reminders=[row.payload for row in db.session.scalars(select(Reminder).where(Reminder.owner_id==g.owner.id)) if row.payload.get('recordId') is None or row.payload['recordId'] in ordinary_ids]
-    data = {'documents': docs, 'reminders': reminders}
-    encoded = android_json(data)
-    photos = {photo['id']: photo for doc in docs for photo in doc.get('photos', [])}
-    info = {'format': 'everhere-archive', 'archiveVersion': 1, 'kind': 'json', 'region': current_app.config.get('CLOUD_REGION', 'cn'),
-            'createdAt': millis(datetime.now(timezone.utc)), 'appVersion': 'web-local-2026.10', 'versionCode': 2, 'databaseVersion': 2,
-            'dataSha256': hashlib.sha256(encoded).hexdigest(), 'dataBytes': str(len(encoded)),
-            'counts': {**{kind: sum(d['type'] == kind for d in docs) for kind in ('record', 'entity', 'thread', 'chapter')}, 'reminder': len(reminders), 'photo': len(photos)},
-            'assets': [{**photo, 'entry': None} for photo in photos.values()], 'missingOriginals': list(photos), 'protectedExcluded': True, 'complete': False}
-    return {'format': 'everhere-archive', 'archiveVersion': 1, 'manifest': info, 'data': data}

@@ -67,7 +67,7 @@ def remove(source_id):
 
 
 def set_deleted(record, deleted, expected_version):
-    from ..services.android_archive import millis, record_document
+    from ..services.record_documents import millis, record_document
     changed = db.session.execute(db.update(LifeRecord).where(LifeRecord.id == record.id, LifeRecord.version == expected_version).values(version=expected_version + 1).execution_options(synchronize_session=False))
     if changed.rowcount != 1:
         raise APIError("记录已变化，请刷新后重试。", 409, "version_conflict")

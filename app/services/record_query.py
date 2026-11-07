@@ -6,7 +6,7 @@ from sqlalchemy import select
 from ..extensions import db
 from ..models import LifeRecord
 from ..security import APIError
-from sync_contract import event_date
+from .record_schema import event_date
 
 
 def record_date(value):
@@ -76,7 +76,8 @@ def select_records(args):
         value = record_data(row)
         if target == 'timeline' and not value.get('showInTimeline', True):
             continue
-        if target == 'spatial' and (not value.get('showOnGlobe', False) or value.get('latitude') is None or value.get('longitude') is None):
+        if target == 'spatial' and not ((value.get('placeName') or '').strip() or
+                (value.get('showOnGlobe', False) and value.get('latitude') is not None and value.get('longitude') is not None)):
             continue
         if state and value['recordState'] != state or precision and value['datePrecision'] != precision:
             continue

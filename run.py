@@ -55,7 +55,7 @@ def main():
         except ValueError:
             raise SetupError("WEB_PORT 须为 1—65535 之间的端口号。") from None
         print(f"\n人生相册已准备就绪（MySQL）。打开 http://127.0.0.1:{port}/", flush=True)
-        print("无需注册即可开始本机记录；云账号登录不会上传人生资料。停止运行请按 Ctrl+C 或 VS Code 的停止按钮。\n", flush=True)
+        print("相册、回忆录与商城使用网站账户；商城当前仅保存待支付订单。停止运行请按 Ctrl+C 或 VS Code 的停止按钮。\n", flush=True)
         # 由 VS Code 提供调试器，关闭重载子进程，避免重复提示密码。
         application.run(host="127.0.0.1", port=port, debug=True, use_debugger=False, use_reloader=False)
     except (SetupError, EOFError, KeyboardInterrupt) as error:

@@ -28,7 +28,7 @@ const fs=require('node:fs/promises');
    const record=(await(await fetch('/api/v1/records',{method:'POST',headers,body:JSON.stringify({title:'人生记录',content:'English memory',datePrecision:'year',eventDate:'2020',mood:'开心',linkedEntityIds:[person.id],latitude:0,longitude:0,showOnGlobe:true})})).json()).data;
    return {person,record,region:session.region};
   });
-  for(const view of ['all','timeline','calendar','places','upcoming','entities','drafts','trash','appearance','mine','archive']){await nav(view);await noChinese(view);}
+  for(const view of ['all','timeline','calendar','places','upcoming','entities','drafts','trash','mine']){await nav(view);await noChinese(view);}
   await page.locator('[data-view="about"]').count().then(async count=>{if(!count){await nav('mine');}await page.locator('[data-view="about"]').click();});await noChinese('about');
   await nav('home');await page.locator('#hero-write').click();await page.locator('[data-create-state="occurred"]').click();await page.locator('#editor-dialog[open]').waitFor();
   await noChinese('editor');
@@ -54,21 +54,15 @@ const fs=require('node:fs/promises');
   assert.equal(await page.locator('[name="content"]').inputValue(),'保留中文正文与标签');await page.locator('#save-record').click();await page.locator('#detail-dialog[open]').waitFor();await page.locator('[data-close="detail-dialog"]').click();
   await nav('entities');await page.locator('[data-focus-node]').first().click();await page.locator('.person-focus').waitFor();await noChinese('person');
   assert.equal(await page.locator('.person-focus h2').innerText(),'人物');
-  await nav('lifegraph');await page.waitForFunction(()=>document.querySelector('#lifegraph')?.getAttribute('aria-busy')==='false');await noChinese('life connections');
-  await page.locator('[data-lg="filters"]').count().then(async count=>{if(count)await page.locator('[data-lg="filters"]').click();});
-  await page.screenshot({path:'test-results/i18n-graph-en.png',fullPage:true});
-  await nav('archive');await page.locator('[data-action="export"]').click();await noChinese('export confirmation');const wait=page.waitForEvent('download');await page.locator('#confirm-submit').click();const download=await wait;
-  const archive=JSON.parse(await fs.readFile(await download.path(),'utf8'));const original=archive.data.documents.find(d=>d.id===seed.record.id);assert.equal(original.title,'人生记录');assert.equal(original.mood,'开心');
-  await page.locator('#confirm-dialog').waitFor({state:'hidden'});
   await page.route('**/api/v1/records?*',route=>route.abort());await nav('all');assert.match(await page.locator('.error-state').innerText(),/Connection interrupted/);await noChinese('network error');await page.unroute('**/api/v1/records?*');await page.locator('[data-action="retry"]').click();
   await page.waitForFunction(()=>!document.querySelector('#view-content .loading-state'));
   const validation=await page.evaluate(async()=>{const session=(await(await fetch('/api/v1/auth/session')).json()).data;return (await(await fetch('/api/v1/records',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':session.csrfToken},body:JSON.stringify({title:'',content:''})})).json()).error;});assert.equal(validation.message,'Enter a title or some text.');
   await nav('home');await page.screenshot({path:'test-results/i18n-home-en.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});await page.goto(base);await page.locator('.life-hero').waitFor();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:'test-results/i18n-mobile-en.png',fullPage:true});
   assert.equal(await page.locator('[data-language-select]').isVisible(),true);
-  await page.goto(base+'/login');await page.locator('#auth-error').filter({hasText:'not configured'}).waitFor();await noChinese('cloud login');
-  await page.locator('[data-language-select]').selectOption('zh-CN');await page.waitForFunction(()=>document.documentElement.lang==='zh-CN');assert.match(await page.locator('h1').innerText(),/登录云账号/);
-  assert.deepEqual(errors,[]);console.log('PASS: 中英文切换与持久化、全视图文案、日期格式、用户原文/心情枚举保真、编辑保护、草稿跨语言恢复、归档保真、英文错误、390px布局和登录页');
+  await page.goto(base+'/login');await page.locator('#account-form').waitFor();await noChinese('website login');
+  await page.locator('[data-language-select]').selectOption('zh-CN');await page.waitForFunction(()=>document.documentElement.lang==='zh-CN');assert.match(await page.locator('h1').innerText(),/欢迎回来/);
+  assert.deepEqual(errors,[]);console.log('PASS: 中英文切换与持久化、全视图文案、日期格式、用户原文/心情枚举保真、编辑保护、草稿跨语言恢复、资料保真、英文错误、390px布局和登录页');
  }catch(error){await page.screenshot({path:'test-results/i18n-failure.png',fullPage:true});throw error;}
  finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

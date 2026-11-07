@@ -3,8 +3,8 @@
   "private": true,
   "description": "仅用于可选浏览器验收，应用前端无需构建。",
   "scripts": {
+    "test:browser:all": "node tools/run-browser-checks.cjs",
     "test:browser": "node tools/browser-check.cjs",
-    "test:graph": "node tools/lifegraph-state-check.mjs",
     "test:i18n": "node tools/i18n-browser-check.cjs",
     "test:workflows": "node tools/workflows-browser-check.cjs"
   },

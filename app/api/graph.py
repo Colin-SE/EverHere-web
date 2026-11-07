@@ -8,14 +8,14 @@ from ..extensions import db
 from ..models import Draft, LifeNode, LifeRecord, RecordNode, now
 from ..security import APIError, body, local_required
 from ..services.records import KINDS, node_data, normalize_node
-from ..services.android_archive import millis, node_document, record_document
+from ..services.record_documents import millis, node_document, record_document
 
 bp = Blueprint('graph', __name__, url_prefix='/api/v1')
 
 
 def owned_node(kind, source_id):
     node = db.session.scalar(select(LifeNode).where(LifeNode.user_id == g.owner.id, LifeNode.kind == kind, LifeNode.source_id == source_id, LifeNode.is_deleted.is_(False)))
-    if not node:
+    if not node or kind != 'entities' or node.payload.get('type', 'person') != 'person':
         raise APIError('人物或关联资料不存在。', 404)
     return node
 
@@ -52,7 +52,8 @@ def check_version(node, value):
 def graph():
     result = {kind: [] for kind in KINDS}
     for node in db.session.scalars(select(LifeNode).where(LifeNode.user_id == g.owner.id, LifeNode.is_deleted.is_(False)).order_by(LifeNode.created_at.desc())):
-        result[node.kind].append(node_data(node))
+        if node.kind == 'entities' and node.payload.get('type', 'person') == 'person':
+            result['entities'].append(node_data(node))
     return {'data': result}
 
 

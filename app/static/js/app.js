@@ -1,22 +1,20 @@
 import {t,h,m,locale} from './i18n.js';
-import {api,getSession,downloadFile} from './api.js';
+import {api,getSession} from './api.js';
 import {icon,hydrateIcons,esc,today,dateLabel,localPhoto,stateLabels,moodLabel,toast} from './ui.js';
 import * as views from './views.js';
 import {DraftSession} from './drafts.js';
 import {openGallery} from './gallery.js';
-import {lifegraphShell,mountLifeGraph} from './lifegraph.js';
 
 /* 统一页面状态：筛选与记录在视图切换时复用，不写入浏览器持久缓存。 */
 const now=new Date();
-const state={view:'home',homeYear:now.getFullYear(),records:[],allRecords:[],graph:{entities:[],},filters:{},q:'',user:null,calendarYear:now.getFullYear(),calendarMonth:now.getMonth(),selectedDate:today(),place:null,drafts:[],personId:null,theme:'WARM',allQuery:{filters:{},q:''},recordQuery:{filters:{},q:''}};
-const titles={lifegraph:[t('人生脉络'),t('从现在出发，一点点打开人与经历的连接。')],about:[t('关于与帮助'),t('本机资料、备份和当前真实能力。')],all:[t('全部记录'),t('包含关闭时间轴显示的普通记录；筛选与时间轴独立。')],drafts:[t('本机草稿'),t('草稿单独保存，不计正式记录，不进入云同步。')],trash:[t('回收站'),t('软删除保留原 ID、关系和照片，可随时恢复。')],appearance:[t('外观'),t('暖阳与林间，仅改变当前浏览器外观。')],person:[t('人物与经历'),t('一份人物资料，关联同一份人生记录。')],home:[t('我的生活'),t('过去，现在和未来，都是我的人生。')],timeline:[t('人生记录'),t('按时间，重新遇见那些值得留下的生活。')],calendar:[t('日历回看'),t('翻过日历，再次遇见那些有故事的日子。')],places:[t('地点'),t('走过的地方，留下了属于你的故事。')],upcoming:[t('未来计划'),t('给未来留一些期待，也给自己留一些空白。')],entities:[t('人物'),t('那些人、那些地方，都在你的故事里。')],mine:[t('我的'),t('保护、管理和带走自己的人生资料。')],archive:[t('数据管理'),t('安心收藏，自由带走。')]};
+const state={view:'home',homeYear:now.getFullYear(),records:[],allRecords:[],graph:{entities:[],},filters:{},q:'',user:null,calendarYear:now.getFullYear(),calendarMonth:now.getMonth(),selectedDate:today(),place:null,drafts:[],personId:null,allQuery:{filters:{},q:''},recordQuery:{filters:{},q:''}};
+const titles={about:[t('关于与帮助'),t('账户、资料保存和功能范围。')],all:[t('全部记录'),t('包含关闭时间轴显示的普通记录；筛选与时间轴独立。')],drafts:[t('本机草稿'),t('草稿单独保存，可继续编辑后正式提交。')],trash:[t('回收站'),t('软删除保留原 ID、关系和照片，可随时恢复。')],person:[t('人物与经历'),t('一份人物资料，关联同一份人生记录。')],home:[t('我的生活'),t('过去，现在和未来，都是我的人生。')],timeline:[t('人生记录'),t('按时间，重新遇见那些值得留下的生活。')],calendar:[t('日历回看'),t('翻过日历，再次遇见那些有故事的日子。')],places:[t('地点'),t('走过的地方，留下了属于你的故事。')],upcoming:[t('未来计划'),t('给未来留一些期待，也给自己留一些空白。')],entities:[t('人物'),t('那些人、那些地方，都在你的故事里。')],mine:[t('我的'),t('管理自己的记录、回忆录和订单。')],};
 const content=document.getElementById('view-content');
 const recordForm=document.getElementById('record-form');
 const editor=document.getElementById('editor-dialog');
 let editorRecord=null,editorPhotos=[],editorDirty=false,uploading=false,loadSequence=0;
 let editorTags=[],editorOpening=false,savingRecord=false,progressTouched=false,dateInputs={},dateMode='unknown';
-let disposeLifeGraph=null;
-let currentDetail=null,pendingArchive=null,pendingPreview=null,pendingConfirm=null;
+let currentDetail=null,pendingConfirm=null;
 hydrateIcons();
 document.getElementById('today-label').textContent=`${today().replaceAll('-',' . ')}  /  ${now.toLocaleDateString(locale(),{weekday:'long'})}`;
 
@@ -45,7 +43,7 @@ document.getElementById('confirm-dialog').addEventListener('close',()=>{if(pendi
 function updateNav(){
   document.body.dataset.currentView=state.view;
   document.querySelectorAll('.nav-item,[data-view].bottom-nav-item,.bottom-nav [data-view]').forEach(button=>{
-    const mobileSection=['calendar','upcoming','all','person'].includes(state.view)?'timeline':['archive','entities','drafts','trash','appearance','about','lifegraph'].includes(state.view)?'mine':state.view;
+    const mobileSection=['calendar','upcoming','all','person'].includes(state.view)?'timeline':['entities','drafts','trash','about'].includes(state.view)?'mine':state.view;
     const active=button.dataset.view===(button.closest('.bottom-nav')?mobileSection:state.view);
     button.classList.toggle('active',active);
     if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
@@ -56,27 +54,26 @@ function updateNav(){
   document.getElementById('page-description').textContent=description;
   document.getElementById('breadcrumb').textContent=title;
   document.title=m`${title} · 人生相册`;
-  document.querySelector('.page-heading').hidden=['home','lifegraph'].includes(state.view);
+  document.querySelector('.page-heading').hidden=['home'].includes(state.view);
   document.getElementById('record-tools').hidden=!['timeline','calendar','places','upcoming','all','person'].includes(state.view);
   if(document.getElementById('record-tools').hidden)document.getElementById('filters').hidden=true;
-  document.getElementById('new-record').hidden=['archive','mine','trash','drafts','appearance','entities','about','lifegraph'].includes(state.view);
+  document.getElementById('new-record').hidden=['mine','trash','drafts','entities','about'].includes(state.view);
 }
 function writeRoute(replace=false){
-  const params=new URLSearchParams({view:state.view});if(state.view==='lifegraph'&&state.lifegraphFocus)params.set('focus',state.lifegraphFocus);if(state.personId&&state.view==='person')params.set('id',state.personId);
+  const params=new URLSearchParams({view:state.view});if(state.personId&&state.view==='person')params.set('id',state.personId);
   if(['timeline','calendar','all','places','person','upcoming'].includes(state.view)){for(const [key,value] of Object.entries(state.filters))if(value)params.set(key,value);if(state.q)params.set('q',state.q);}
   if(state.view==='calendar'){params.set('month',`${state.calendarYear}-${String(state.calendarMonth+1).padStart(2,'0')}`);params.set('day',state.selectedDate);}
   history[replace?'replaceState':'pushState'](null,'','#'+params.toString());
 }
 function restoreRoute(){
   const params=new URLSearchParams(location.hash.slice(1));const view=params.get('view');state.view=Object.hasOwn(titles,view)?view:'home';
-  state.personId=params.get('id');state.lifegraphFocus=params.get('focus')||undefined;state.filters={};for(const key of ['state','progress','precision','from','to','tag','node','kind','people'])if(params.get(key))state.filters[key]=params.get(key);
+  state.personId=params.get('id');state.filters={};for(const key of ['state','progress','precision','from','to','tag','node','kind','people'])if(params.get(key))state.filters[key]=params.get(key);
   state.q=params.get('q')||'';const month=/^(\d{4})-(\d{2})$/.exec(params.get('month')||'');if(month&&Number(month[2])>=1&&Number(month[2])<=12){state.calendarYear=Number(month[1]);state.calendarMonth=Number(month[2])-1;}if(/^\d{4}-\d{2}-\d{2}$/.test(params.get('day')||''))state.selectedDate=params.get('day');
   syncFilterForm();
 }
 function syncFilterForm(){document.getElementById('search').value=state.q;for(const element of document.getElementById('filters').elements)if(element.name&&element.name!=='people')element.value=state.filters[element.name]||'';}
 async function navigate(view){
   if(!Object.hasOwn(titles,view))return;
-  if(state.view==='archive'){pendingArchive=null;pendingPreview=null;}
   if(state.view==='all'&&view!=='all'){state.allQuery={filters:{...state.filters},q:state.q};state.filters={...state.recordQuery.filters};state.q=state.recordQuery.q;}
   if(view==='all'&&state.view!=='all'){state.recordQuery={filters:{...state.filters},q:state.q};state.filters={...state.allQuery.filters};state.q=state.allQuery.q;}
   state.view=view;state.place=null;syncFilterForm();updateNav();writeRoute();closeMenu();window.scrollTo({top:0,behavior:'instant'});await load();
@@ -84,20 +81,6 @@ async function navigate(view){
 window.addEventListener('popstate',async()=>{if(editor.open){await closeEditor();if(editor.open){writeRoute(true);return;}}if(nodeDialog.open){await closeNode();if(nodeDialog.open){writeRoute(true);return;}}restoreRoute();updateNav();await load();});
 async function load(){
   const sequence=++loadSequence;
-  disposeLifeGraph?.();disposeLifeGraph=null;
-  if(state.view==='lifegraph'){
-    content.innerHTML=lifegraphShell();
-    disposeLifeGraph=mountLifeGraph(document.getElementById('lifegraph'),{
-      focus:state.lifegraphFocus,
-      onFocus:key=>{state.lifegraphFocus=key;writeRoute(true);},
-      openRecord:showDetail,
-      closeReadingDialogs:()=>{for(const id of ['detail-dialog','confirm-dialog']){const dialog=document.getElementById(id);if(dialog.open)dialog.close();}},
-      openPerson:id=>{state.personId=id;navigate('person');},
-      openRecords:async node=>{state.allQuery={filters:node.type==='record'?{}:{node:node.id,kind:node.key.startsWith('entity:')?'entities':node.type==='chapter'?'chapters':'threads'},q:''};await navigate('all');if(node.type==='record')await showDetail(node.id);},
-      confirmRelation:({record,node,operation})=>ask({title:operation==='link'?t('确认保存这条关联？'):t('确认解除这条关联？'),message:`${record.label} ↔ ${node.label}。${operation==='link'?t('作为用户明确保存的正式关联，所有视图和归档将读取同一份关系。'):t('解除后原记录、资料和照片仍然保留。')}`,label:operation==='link'?t('确认关联'):t('确认解除'),action:async()=>{}})
-    });
-    return;
-  }
   content.innerHTML=h('<div class="loading-state">正在翻开这一页生活…</div>');
   const useFilters=['timeline','calendar','places','upcoming','all','person'].includes(state.view);
   const target=['timeline','calendar'].includes(state.view)?'timeline':state.view==='places'?'spatial':'all';
@@ -120,7 +103,7 @@ function render(){
   if(!active.hidden)active.innerHTML=h`${icon('filter')}正在查看：${esc(node?.name||state.place)}<button data-action="clear-focus">查看全部</button>`;
   const records=state.place?state.records.filter(record=>record.placeName===state.place):state.records;
   const people=document.getElementById('people-filter');if(people)people.innerHTML=state.graph.entities.filter(node=>node.type==='person').map(node=>`<option value="${esc(node.id)}" ${(state.filters.people||'').split(',').includes(node.id)?'selected':''}>${esc(node.name)}</option>`).join('');
-  const renderers={all:()=>views.all(records,state),drafts:()=>views.drafts(state),trash:()=>views.trash(records),appearance:()=>views.appearance(state),person:()=>views.person(records,state),about:()=>views.about(state),home:()=>views.home(records,state),mine:()=>views.mine(state),timeline:()=>views.timeline(records,state),calendar:()=>views.calendar(records,state),places:()=>views.places(records,state),upcoming:()=>views.upcoming(records),archive:()=>views.archive(state),entities:()=>views.nodes('entities',state)};
+  const renderers={all:()=>views.all(records,state),drafts:()=>views.drafts(state),trash:()=>views.trash(records),person:()=>views.person(records,state),about:()=>views.about(state),home:()=>views.home(records,state),mine:()=>views.mine(state),timeline:()=>views.timeline(records,state),calendar:()=>views.calendar(records,state),places:()=>views.places(records,state),upcoming:()=>views.upcoming(records),entities:()=>views.nodes('entities',state)};
   content.innerHTML=(renderers[state.view]||renderers.home)();
 }
 const recordDraft=new DraftSession('record',collectRecord,value=>{document.getElementById('draft-status').textContent=value;});
@@ -156,7 +139,7 @@ recordForm.elements.datePrecision.addEventListener('change',()=>{configureDates(
 async function openEditor(record=null,planned=false,options={}){
   if(editorOpening)return;editorOpening=true;
   try{
-    if(state.view==='lifegraph')state.graph=await api('/graph');
+
     recordForm.reset();editorRecord=record;progressTouched=false;
     const initial={recordState:planned?'planned':options.recordState||'occurred',completionState:planned?'planned':options.recordState==='ongoing'?'started':'completed',datePrecision:state.view==='calendar'?'day':'unknown',eventDate:state.view==='calendar'?state.selectedDate:'',showInTimeline:true,showOnGlobe:false,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'Asia/Shanghai',placePrecision:'city'};
     let value=record||initial;
@@ -233,12 +216,12 @@ document.getElementById('photo-input').addEventListener('change',async event=>{
 async function showDetail(id){
   try{
     const record=await api(`/records/${encodeURIComponent(id)}`);
-    if(state.view==='lifegraph')state.graph=await api('/graph');currentDetail=record;
+currentDetail=record;
     const links=[];
     for(const [kind,field] of Object.entries({entities:'linkedEntityIds',threads:'linkedThreadIds',chapters:'linkedChapterIds'})){
       for(const node of state.graph[kind])if(record[field]?.includes(node.id))links.push(node.name);
     }
-    document.getElementById('detail-content').innerHTML=h`<header class="detail-heading"><button class="icon-button close-detail" data-close="detail-dialog" aria-label="关闭详情">${icon('close')}</button><div class="record-top"><span class="record-place">${icon('pin')}${esc(record.placeName||t('生活里的某个角落'))}</span><span class="record-state state-${esc(record.recordState)}">${stateLabels[record.recordState]}</span></div><h2 id="detail-title">${esc(record.title||t('一段未命名的时光'))}</h2><div class="detail-date">${esc(dateLabel(record.eventDate))}${record.eventEndAt?` — ${esc(dateLabel(record.eventEndAt))}`:''} · ${esc(record.mood?moodLabel(record.mood):t('一段属于你的生活'))}</div></header><div class="detail-body"><div class="detail-text">${esc(record.content)}</div><div class="detail-photos">${(record.photoUris||[]).map(uri=>localPhoto(uri)?h`<img src="${esc(uri)}" alt="记忆中的照片" data-detail-photo="${(record.photoUris||[]).indexOf(uri)}">`:h('<div class="photo-unavailable">原端照片仅保留引用，需在编辑时重新上传。</div>')).join('')}</div><div class="record-meta">${(record.tags||[]).map(tag=>`<span class="tag"># ${esc(tag)}</span>`).join('')}</div><div class="detail-relations">${record.linkedEntityIds?.map(id=>{const person=state.graph.entities.find(node=>node.id===id);return person?`<button class="button small" data-person="${esc(id)}">${esc(person.name)}</button>`:'';}).join('')||''}</div></div><footer class="dialog-footer"><button class="button subtle" data-action="view-lifegraph">${icon('thread')}在脉络中查看</button>${h`<button class="button subtle danger" data-action="delete-record">${icon('trash')}删除</button><button class="button primary" data-action="edit-record">${icon('edit')}编辑这段时光</button>`}</footer>`;
+    document.getElementById('detail-content').innerHTML=h`<header class="detail-heading"><button class="icon-button close-detail" data-close="detail-dialog" aria-label="关闭详情">${icon('close')}</button><div class="record-top"><span class="record-place">${icon('pin')}${esc(record.placeName||t('生活里的某个角落'))}</span><span class="record-state state-${esc(record.recordState)}">${stateLabels[record.recordState]}</span></div><h2 id="detail-title">${esc(record.title||t('一段未命名的时光'))}</h2><div class="detail-date">${esc(dateLabel(record.eventDate))}${record.eventEndAt?` — ${esc(dateLabel(record.eventEndAt))}`:''} · ${esc(record.mood?moodLabel(record.mood):t('一段属于你的生活'))}</div></header><div class="detail-body"><div class="detail-text">${esc(record.content)}</div><div class="detail-photos">${(record.photoUris||[]).map(uri=>localPhoto(uri)?h`<img src="${esc(uri)}" alt="记忆中的照片" data-detail-photo="${(record.photoUris||[]).indexOf(uri)}">`:h('<div class="photo-unavailable">原端照片仅保留引用，需在编辑时重新上传。</div>')).join('')}</div><div class="record-meta">${(record.tags||[]).map(tag=>`<span class="tag"># ${esc(tag)}</span>`).join('')}</div><div class="detail-relations">${record.linkedEntityIds?.map(id=>{const person=state.graph.entities.find(node=>node.id===id);return person?`<button class="button small" data-person="${esc(id)}">${esc(person.name)}</button>`:'';}).join('')||''}</div></div><footer class="dialog-footer">${h`<button class="button subtle danger" data-action="delete-record">${icon('trash')}删除</button><button class="button primary" data-action="edit-record">${icon('edit')}编辑这段时光</button>`}</footer>`;
     document.getElementById('detail-dialog').showModal();
   }catch(error){toast(error.message);}
 }
@@ -261,7 +244,7 @@ async function savePersonAndClose(){
   try{if(personDraft.current)await personDraft.store();else if(nodeDirty)throw new Error(t('请先正式保存人物资料。'));personDraft.detach();nodeDirty=false;nodeDialog.close();await load();}
   finally{personDraft.read=read;savingPerson=false;controls.forEach((element,index)=>element.disabled=prior[index]);}
 }
-async function closeNode(){if(savingPerson)return;if(personDraft.current&&personDraft.dirty){await ask({title:t('保存人物草稿后返回？'),message:t('人物草稿独立保存在本机，不进入正式人物数量或云同步。'),fields:h('<button type="button" class="button danger" data-action="discard-person-draft">放弃人物草稿</button>'),label:t('保存草稿并返回'),action:savePersonAndClose});return;}await savePersonAndClose();}
+async function closeNode(){if(savingPerson)return;if(personDraft.current&&personDraft.dirty){await ask({title:t('保存人物草稿后返回？'),message:t('人物草稿独立保存在本机，不进入正式人物数量。'),fields:h('<button type="button" class="button danger" data-action="discard-person-draft">放弃人物草稿</button>'),label:t('保存草稿并返回'),action:savePersonAndClose});return;}await savePersonAndClose();}
 nodeForm.addEventListener('input',()=>{nodeDirty=true;personDraft.changed();});nodeForm.addEventListener('change',()=>{nodeDirty=true;personDraft.changed();});
 nodeDialog.addEventListener('cancel',event=>{event.preventDefault();closeNode().catch(error=>toast(error.message));});
 nodeForm.addEventListener('submit',async event=>{
@@ -275,18 +258,6 @@ nodeForm.addEventListener('submit',async event=>{
   finally{savingPerson=false;controls.forEach((element,index)=>element.disabled=prior[index]);}
 });
 
-/* 归档下载之前展示范围；导入预览保留在内存，确认后才提交。 */
-async function exportArchive(){await ask({title:t('导出普通 JSON'),message:t('普通 JSON 包含记录、人物与关系、删除标记和照片元信息，不包含原图文件。导出只在本机执行。'),label:t('下载 JSON'),action:async()=>{const data=await api('/archive/export');const url=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download=`everhere-${today()}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}});}
-function showImportPreview(data){
-  pendingPreview=data;const preview=document.getElementById('import-preview');preview.hidden=false;
-  preview.innerHTML=h`<h3>恢复预览 · 尚未写入</h3><dl><dt>新增记录</dt><dd>${data.newRecords}</dd><dt>重复记录</dt><dd>${data.skippedRecords}</dd><dt>同 ID / 草稿冲突</dt><dd>${data.conflicts?.length||0}</dd><dt>人物 / 线索 / 阶段</dt><dd>${data.entities} / ${data.threads} / ${data.chapters}</dd><dt>提醒元信息（不启动通知）</dt><dd>${data.reminders||0}</dd><dt>照片元信息</dt><dd>${data.photoCount||0}</dd></dl>${data.missingOriginals?.length?h`<p class="warning">这份 JSON 不包含 ${data.missingOriginals.length} 张原图，恢复后保留元信息和缺图提示。</p><label class="checkbox-label"><input id="accept-missing" type="checkbox">我明确接受本次缺图恢复</label>`:''}${data.conflicts?.length?h('<label class="checkbox-label"><input id="copy-conflicts" type="checkbox">对冲突保留两份，原记录、草稿和墓碑不覆盖</label>'):''}<label class="checkbox-label"><input id="restore-confirmed" type="checkbox">确认只将以上范围恢复到当前本机空间，不上传云端</label><p id="restore-error" class="form-error" role="alert"></p><button class="button primary" data-action="confirm-import">确认恢复到本机</button><button class="button subtle" data-action="refresh-import">重新预览</button><button class="button subtle danger" data-action="discard-import">放弃本次暂存</button>`;
-}
-async function previewImport(file){
-  const preview=document.getElementById('import-preview');preview.hidden=false;preview.textContent=t('正在检查归档条目和原图…');pendingPreview=null;
-  try{if(file.size>128*1024*1024)throw new Error(t('Web 单次归档上限为 128 MB。'));const form=new FormData();form.append('archive',file);showImportPreview(await api('/archive/files/preview',{method:'POST',body:form}));}
-  catch(error){preview.textContent=error.message;}
-}
-
 function replaceRecordFilters(values){
   // 首页统计和年份入口发起新的筛选；普通视图切换保留原条件。
   state.filters={...values};state.q='';document.getElementById('search').value='';
@@ -296,7 +267,6 @@ function replaceRecordFilters(values){
 }
 
 const actions={
-  'view-lifegraph':async()=>{if(!currentDetail)return;state.lifegraphFocus='record:'+currentDetail.id;document.getElementById('detail-dialog').close();await navigate('lifegraph');},
   'save-record-draft':saveDraftAndClose,'save-person-draft':savePersonAndClose,
   'discard-record-draft':async()=>{if(uploading||savingRecord)return;if(recordDraft.current)await recordDraft.discard();editorDirty=false;editor.close();document.getElementById('confirm-dialog').close();await load();},
   'discard-person-draft':async()=>{if(savingPerson)return;if(personDraft.current)await personDraft.discard();nodeDirty=false;nodeDialog.close();document.getElementById('confirm-dialog').close();await load();},
@@ -311,22 +281,6 @@ const actions={
     const record=currentDetail;if(!record)return;
     await ask({title:t('删除这段记忆？'),message:t('记录将移入本机回收站，原图和关联保留，可按原 ID 恢复。'),label:t('确认删除'),action:async()=>{await api(`/records/${encodeURIComponent(record.id)}`,{method:'DELETE',json:{version:record.version}});document.getElementById('detail-dialog').close();currentDetail=null;toast(t('记录已删除。'));await load();}});
   },
-  export:exportArchive,
-  'cloud-status':async()=>{const value=await api('/cloud/status');
-    if(value.configured&&!value.loggedIn){await ask({title:t('登录共同云账号'),message:t('使用与安卓版相同区域的账号。登录只验证身份，不上传或下载人生资料。'),fields:h('<label>云账号邮箱<input name="email" type="email" required autocomplete="username"></label><label>云账号密码<input name="password" type="password" required maxlength="128" autocomplete="current-password"></label>'),label:t('只登录账号'),action:async fields=>{await api('/cloud/login',{method:'POST',json:fields});toast(t('云账号已登录，资料仍仅保存在本机。'));}});return;}
-    await ask({title:t('本机资料与云账号'),message:value.reason||(value.loggedIn?t('云账号已登录，资料仍只保存在本机；范围许可未接通，尚不能执行云同步。'):t('共同云服务尚未配置。默认只保存本机资料，登录不会上传记录。')),label:t('知道了'),action:async()=>{}});},
-  'confirm-import':async()=>{
-    if(!pendingPreview)return;const button=content.querySelector('[data-action="confirm-import"]');button.disabled=true;
-    const values={confirmed:!!document.getElementById('restore-confirmed')?.checked,acceptMissingPhotos:!!document.getElementById('accept-missing')?.checked,copyConflicts:!!document.getElementById('copy-conflicts')?.checked};
-    try{const result=await api('/archive/jobs/'+encodeURIComponent(pendingPreview.id)+'/confirm',{method:'POST',json:values});pendingPreview=null;toast(t('已恢复 {created} 条记录，保留 {skipped} 条重复记录。',{created:result.newRecords,skipped:result.skippedRecords}));await load();}
-    catch(error){document.getElementById('restore-error').textContent=error.message;}
-    finally{if(button.isConnected)button.disabled=false;}
-  },
-  'zip-export':async()=>{await ask({title:t('导出含原图 ZIP'),message:t('将导出当前空间的普通记录、关系、删除标记和原图。原图未恢复或校验不符时停止，不生成不完整 ZIP。本机导出不连接云端。'),label:t('检查并下载 ZIP'),action:async()=>{await downloadFile('/archive/export.zip',`everhere-${today()}.zip`);}});},
-  'archive-jobs':async()=>{const data=await api('/archive/jobs');document.getElementById('archive-jobs').innerHTML=data.jobs.length?data.jobs.map(job=>h`<p>${job.kind.toUpperCase()} · ${job.total} 条记录 · ${esc(job.createdAt)} <button class="text-button" data-archive-job="${esc(job.id)}">继续预览</button></p>`).join(''):h('<p>暂无未完成的本机恢复。</p>');},
-  'refresh-import':async()=>{if(pendingPreview)showImportPreview(await api('/archive/jobs/'+encodeURIComponent(pendingPreview.id)+'/refresh',{method:'POST',json:{}}));},
-  'discard-import':async()=>{if(!pendingPreview)return;await api('/archive/jobs/'+encodeURIComponent(pendingPreview.id),{method:'DELETE',json:{}});pendingPreview=null;document.getElementById('import-preview').hidden=true;toast(t('本次加密暂存已删除，原始文件和正式资料不变。'));},
-  logout:async()=>{await api('/cloud/logout',{method:'POST',json:{}});location.assign('/');},
 
 };
 document.addEventListener('click',async event=>{
@@ -334,7 +288,6 @@ document.addEventListener('click',async event=>{
   try{
     if(target.dataset.close){if(target.dataset.close==='editor-dialog')await closeEditor();else if(target.dataset.close==='node-dialog')await closeNode();else document.getElementById(target.dataset.close).close();}
     else if(target.dataset.view)await navigate(target.dataset.view);
-    else if(target.dataset.graphFocus){state.lifegraphFocus=target.dataset.graphFocus;await navigate('lifegraph');}
     else if(target.dataset.switch)await navigate(target.dataset.switch);
     else if(target.dataset.homeAll){state.allQuery={filters:{},q:''};await navigate('all');}
     else if(target.dataset.homeState){state.allQuery={filters:{state:target.dataset.homeState},q:''};await navigate('all');}
@@ -351,17 +304,15 @@ document.addEventListener('click',async event=>{
     else if(target.dataset.place){state.place=target.dataset.place;state.view='timeline';updateNav();render();}
     else if(target.dataset.removePhoto!==undefined){editorPhotos.splice(Number(target.dataset.removePhoto),1);editorDirty=true;renderPhotoPreviews();recordDraft.changed();}
     else if(target.dataset.removeTag!==undefined){editorTags.splice(Number(target.dataset.removeTag),1);editorDirty=true;renderTags();recordDraft.changed();}
-    else if(target.dataset.archiveJob){showImportPreview(await api('/archive/jobs/'+encodeURIComponent(target.dataset.archiveJob)));}
     else if(target.dataset.createState){document.getElementById('creation-dialog').close();await openEditor(null,target.dataset.createState==='planned',{recordState:target.dataset.createState,personId:state.view==='person'?state.personId:undefined});}
     else if(target.dataset.person){state.personId=target.dataset.person;await navigate('person');}
     else if(target.dataset.resumeDraft){const draft=state.drafts.find(item=>item.id===target.dataset.resumeDraft);if(draft?.kind==='person')await openNode('entities',null,{draftId:draft.id});else await openEditor(null,false,{draftId:target.dataset.resumeDraft});}
-    else if(target.dataset.discardDraft){await ask({title:t('放弃这份本机草稿？'),message:t('只删除这份未提交的草稿，正式记录和原始备份文件保留。'),label:t('放弃草稿'),action:async()=>{await api('/drafts/'+encodeURIComponent(target.dataset.discardDraft),{method:'DELETE',json:{version:Number(target.dataset.version)}});await load();}});}
+    else if(target.dataset.discardDraft){await ask({title:t('放弃这份本机草稿？'),message:t('只删除这份未提交的草稿，正式记录和照片保留。'),label:t('放弃草稿'),action:async()=>{await api('/drafts/'+encodeURIComponent(target.dataset.discardDraft),{method:'DELETE',json:{version:Number(target.dataset.version)}});await load();}});}
     else if(target.dataset.restore){await api('/records/'+encodeURIComponent(target.dataset.restore)+'/restore',{method:'POST',json:{version:Number(target.dataset.version)}});toast(t('已按原 ID 恢复记录、关系与照片。'));await load();}
-    else if(target.dataset.theme){state.theme=target.dataset.theme;document.documentElement.dataset.theme=state.theme;try{localStorage.setItem('everhere-theme',state.theme);}catch{toast(t('主题已应用，当前浏览器无法保存外观偏好。'));}render();}
   }catch(error){toast(error.message);}
 });
 document.addEventListener('keydown',event=>{if(event.target.matches('[data-record][role="button"]')&&['Enter',' '].includes(event.key)){event.preventDefault();event.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
-document.addEventListener('change',event=>{if(event.target.id==='calendar-jump'&&event.target.value){const [year,month]=event.target.value.split('-').map(Number);state.calendarYear=year;state.calendarMonth=month-1;writeRoute();render();}if(event.target.id==='import-file'&&event.target.files[0])previewImport(event.target.files[0]);});
+document.addEventListener('change',event=>{if(event.target.id==='calendar-jump'&&event.target.value){const [year,month]=event.target.value.split('-').map(Number);state.calendarYear=year;state.calendarMonth=month-1;writeRoute();render();}});
 document.addEventListener('error',event=>{if(event.target instanceof HTMLImageElement&&event.target.id!=='full-photo'&&localPhoto(event.target.getAttribute('src'))){const replacement=document.createElement('span');replacement.className='photo-unavailable';replacement.textContent=t('照片引用不可用，请重新上传。');event.target.replaceWith(replacement);}},true);
 document.getElementById('new-record').addEventListener('click',()=>actions.new());
 document.getElementById('profile-button').addEventListener('click',()=>navigate('mine'));
@@ -380,13 +331,13 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){if(editor.
 document.addEventListener('click',event=>{const image=event.target.closest('[data-detail-photo],[data-editor-photo]');if(!image)return;openGallery(image.dataset.detailPhoto!==undefined?currentDetail?.photoUris||[]:editorPhotos,Number(image.dataset.detailPhoto??image.dataset.editorPhoto));});
 window.addEventListener('beforeunload',event=>{if((editor.open&&(recordDraft.current?recordDraft.dirty:editorDirty))||(nodeDialog.open&&(personDraft.current?personDraft.dirty:nodeDirty))||uploading||savingRecord||savingPerson){event.preventDefault();event.returnValue='';}});
 window.addEventListener('everhere:language-request',event=>{
-  // 防止语言重载丢弃编辑、恢复预览或尚未完成的写入。
-  if(document.querySelector('dialog[open]')||uploading||savingRecord||savingPerson||pendingPreview){
+  // 防止语言重载丢弃编辑或尚未完成的写入。
+  if(document.querySelector('dialog[open]')||uploading||savingRecord||savingPerson){
     event.preventDefault();toast(t('请先保存或关闭当前对话框，再切换语言。'));return;
   }
   clearTimeout(searchTimer);state.q=document.getElementById('search').value.trim();writeRoute(true);
 });
 try{
-  try{const theme=localStorage.getItem('everhere-theme');state.theme=theme==='FOREST'?'FOREST':'WARM';}catch{}document.documentElement.dataset.theme=state.theme;restoreRoute();
-  const session=await getSession();state.cloudAccount=!!session.user;state.member=session.member;state.user=session.member||session.user||{name:t('本机档案'),email:t('本机资料空间 · 云同步默认关闭')};state.region=session.region||'cn';updateNav();await load();
+  restoreRoute();
+  const session=await getSession();state.member=session.member;state.user=session.member||{name:t('本机档案'),email:''};updateNav();await load();
 }catch(error){content.innerHTML=h`<div class="error-state">${esc(error.message)}<br><button class="button small" data-action="retry">重新加载</button></div>`;}

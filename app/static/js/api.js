@@ -17,9 +17,3 @@ export async function api(path, options={}) {
   return result.data;
 }
 export const getSession = () => api('/auth/session');
-/* 下载保持同源和不缓存，服务器错误在下载前明确反馈。 */
-export async function downloadFile(path,filename){
-  const response=await fetch('/api/v1'+path,{credentials:'same-origin',cache:'no-store',headers:{'X-Everhere-Language':locale()}});
-  if(!response.ok){const value=await response.json().catch(()=>({}));throw new Error(value.error?.message||t('下载未完成，请稍后重试。'));}
-  const blob=await response.blob(),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=filename;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
-}

@@ -41,8 +41,8 @@ def create_app(test_config=None):
     @login_manager.user_loader
     def member_loader(member_id):
         return db.session.get(Member, member_id)
-    from .api import archive, auth, cloud, drafts, graph, lifegraph, records, accounts, memoirs, shop
-    for blueprint in (auth.bp, records.bp, graph.bp, archive.bp, cloud.bp, drafts.bp, lifegraph.bp, accounts.bp, memoirs.bp, shop.bp):
+    from .api import auth, drafts, graph, records, accounts, memoirs, shop
+    for blueprint in (auth.bp, records.bp, graph.bp, drafts.bp, accounts.bp, memoirs.bp, shop.bp):
         app.register_blueprint(blueprint)
     app.before_request(load_user)
 
@@ -56,9 +56,7 @@ def create_app(test_config=None):
 
     @app.get("/login")
     def login():
-        if g.user:
-            return redirect(url_for("index"))
-        return render_template("login.html")
+        return redirect(url_for("workspace") + '#account')
 
     @app.get('/workspace')
     def workspace():

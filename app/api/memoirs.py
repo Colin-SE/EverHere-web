@@ -87,7 +87,13 @@ def claim(memoir_id):
     revision = check_version(item, data, revision=True)
     if item.owner_id == g.member.id or item.state != 'submitted' or revision.reviewer_id:
         raise APIError('此任务无法领取，请刷新队列。', 409, 'invalid_state')
-    revision.reviewer_id = g.member.id
+    # 条件写入保证同一修订只会被领取一次，不能依赖页面按钮或预读取。
+    claimed = db.session.execute(db.update(MemoirRevision).where(
+        MemoirRevision.id == revision.id, MemoirRevision.reviewer_id.is_(None),
+        MemoirRevision.state == 'submitted'
+    ).values(reviewer_id=g.member.id))
+    if claimed.rowcount != 1:
+        raise APIError('此任务无法领取，请刷新队列。', 409, 'invalid_state')
     touch(item)
     db.session.commit()
     return {'data': memoir_data(item, detail=True, staff=True)}
@@ -143,7 +149,7 @@ def generate(memoir_id):
     revision.layout = layout
     try:
         final = memoir_pdf.render_pdf(revision.snapshot, assets, layout)
-        preview = memoir_pdf.render_pdf(revision.snapshot, assets, layout, preview=True)
+        preview = memoir_pdf.sample_pdf(final)
     except Exception as error:
         # 只记录异常类型，不泄露私人文字。失败保留已审核快照，允许再次制作。
         current_app.logger.error('回忆录制作失败：%s', type(error).__name__)
@@ -186,7 +192,13 @@ def image(memoir_id, asset_id):
 @member_required
 def preview(memoir_id):
     item, revision = accessible_revision(memoir_id)
-    asset = db.session.scalar(select(MemoirAsset).where(MemoirAsset.revision_id == revision.id, MemoirAsset.kind == 'preview'))
+    asset = db.session.scalar(select(MemoirAsset).where(MemoirAsset.revision_id == revision.id, MemoirAsset.kind == 'final'))
     if item.state != 'ready' or not asset:
         raise APIError('成品尚未制作完成。', 409, 'not_ready')
-    return send_file(BytesIO(asset.data), mimetype='application/pdf', as_attachment=False, download_name='memoir-preview.pdf', max_age=0)
+    # 旧版本曾把完整正文当预览保存。始终从成品重新提取样张，旧数据也不泄露全文。
+    try:
+        sample = memoir_pdf.sample_pdf(asset.data)
+    except Exception as error:
+        current_app.logger.error('样张读取失败：%s', type(error).__name__)
+        raise APIError('预览暂时无法读取，请稍后重试。', 503, 'preview_unavailable') from None
+    return send_file(BytesIO(sample), mimetype='application/pdf', as_attachment=False, download_name='memoir-preview.pdf', max_age=0)

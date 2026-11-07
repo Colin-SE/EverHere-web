@@ -4,6 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs/promises');
 const base=process.env.TEST_BASE_URL||'http://127.0.0.1:5004';
 (async()=>{
+ assert.match(base,/^http:\/\/(127\.0\.0\.1|localhost):5004$/);
  const browser=await chromium.launch({headless:true,channel:'msedge'});
  const userContext=await browser.newContext({viewport:{width:1440,height:1000}}),adminContext=await browser.newContext({viewport:{width:1440,height:1000}});
  const user=await userContext.newPage(),admin=await adminContext.newPage(),errors=[];
@@ -13,6 +14,7 @@ const base=process.env.TEST_BASE_URL||'http://127.0.0.1:5004';
  const action=(page,name)=>page.getByRole('button',{name,exact:true});
  const saveDraft=async page=>{await action(page,'保存草稿').click();await page.waitForFunction(()=>{const button=document.querySelector('#memoir-form button[type=submit]');return button&&!button.disabled;});};
  try{
+  assert.equal((await (await user.request.get(base+'/health')).json()).database,'sqlite');
   await user.goto(base+'/workspace#account');await action(user,'没有账户，去注册').click();
   await user.getByLabel('显示姓名').fill('旅行记录者');await user.getByLabel('邮箱',{exact:true}).fill(`traveller${Date.now()}@example.test`);await user.getByLabel('密码（10—128 个字符）').fill('browser-user-password');
   await action(user,'注册并进入').click();await action(user,'整理新回忆录').waitFor({timeout:8000}).catch(async e=>{console.error('Account UI:',user.url(),await user.locator('body').innerText(),errors);throw e;});

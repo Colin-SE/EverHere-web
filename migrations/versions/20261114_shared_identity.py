@@ -9,6 +9,18 @@ depends_on = None
 
 
 def upgrade():
+    # 恢复库默认排序规则可能不同；外键沿用旧账号ID的实际类型与排序规则。
+    member_key_type = next(column['type'] for column in sa.inspect(op.get_bind()).get_columns('members')
+                           if column['name'] == 'id').copy()
+    if op.get_bind().dialect.name == 'mysql':
+        # 反射会省略继承自旧表的默认值，需读取列的有效字符规则。
+        charset, collation = op.get_bind().execute(sa.text(
+            "SELECT CHARACTER_SET_NAME, COLLATION_NAME FROM information_schema.COLUMNS "
+            "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='members' AND COLUMN_NAME='id'"
+        )).one()
+        if charset:
+            member_key_type.charset = charset
+            member_key_type.collation = collation
     op.add_column('members', sa.Column('auth_epoch', sa.Integer(), nullable=False, server_default='0'))
     op.add_column('members', sa.Column('email_verified_at', sa.DateTime(), nullable=True))
     op.create_table('identity_challenges',
@@ -23,7 +35,7 @@ def upgrade():
     op.create_index('ix_identity_challenges_email', 'identity_challenges', ['email'])
     op.create_table('identity_sessions',
         sa.Column('id', sa.String(36), primary_key=True),
-        sa.Column('member_id', sa.String(36), sa.ForeignKey('members.id'), nullable=False),
+        sa.Column('member_id', member_key_type, sa.ForeignKey('members.id'), nullable=False),
         sa.Column('installation_id', sa.String(36), nullable=False),
         sa.Column('device_name', sa.String(80), nullable=False),
         sa.Column('access_hash', sa.String(64), nullable=False, unique=True),

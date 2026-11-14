@@ -50,3 +50,11 @@ Android现有AuthApi/IdentityManager/SessionVault协议已逐项对照，但没�
 资料同步、Fastify/PG与Web资料映射、照片、离线冲突、恢复，以及定时异地备份与真实备份恢复仍分别待做。本批未更改课程库、商城、支付、地球或人生脉络。
 
 密码验证沿用 [Werkzeug官方API](https://werkzeug.palletsprojects.com/en/stable/utils/#werkzeug.security.check_password_hash)；轮换回执使用 [cryptography Fernet](https://cryptography.io/en/latest/fernet/)，不自行设计加密算法。
+
+## 服务器恢复库演练补充（2026-11-14）
+
+用户已完成生产备份下载及独立恢复；截图确认1个账号、0条记录/照片，密码/邮箱/角色与空间归属差异均为0。服务器真实运行3a513e3，迁移头20261102_product_images，Waitress本机5000、admin账户。候选dc72147通过离线bundle校验导入，运行版本未切换。
+
+在恢复测试库试迁移时发现外键3780：原members.id为utf8mb4_unicode_ci，恢复库默认utf8mb4_0900_ai_ci，新会话表默认规则不兼容。正式库未执行本次迁移。测试失败已保留，不能在部分DDL已提交的测试库盲目重跑。
+
+修复：只让新member_id外键沿用旧members.id的有效字符集/排序规则。MySQL反射可能省略旧表继承的规则，因此从information_schema读取列的实际值；不重写旧ID、密码或旧表。新增回归在旧表创建后改变独立测试库默认排序规则，再升级并核对旧数据与模型。SQLite/MySQL两项迁移回归最终通过；初版仅复制反射类型仍失败的记录保留。修复后的服务器复验另行记录，不冒充已部署。

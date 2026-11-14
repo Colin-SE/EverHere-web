@@ -271,6 +271,13 @@ def test_additive_migration_keeps_old_member_and_space(tmp_path, engine):
     application = create_app({'SQLALCHEMY_DATABASE_URI': uri})
     with application.app_context():
         upgrade(revision='20261102_product_images')
+        if engine == 'mysql':
+            # 重现恢复后库默认规则变化，但已有账号字段规则保持的情形。
+            from sqlalchemy import text
+            database = db.engine.url.database
+            assert database.endswith('_test') and database.replace('_', '').isalnum()
+            db.session.execute(text(f'ALTER DATABASE `{database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'))
+            db.session.commit()
         member_id, space_id = str(uuid4()), str(uuid4())
         # 迁移前使用原始 SQL，不让新模型依赖提前存在的列。
         from sqlalchemy import text

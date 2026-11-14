@@ -2,7 +2,7 @@
 import re
 import secrets
 
-from flask import Blueprint, g, session
+from flask import Blueprint, g, session, current_app, request
 from flask_login import login_user, logout_user
 from sqlalchemy import select
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -11,10 +11,16 @@ from ..extensions import db, limiter
 from ..models import LocalSpace
 from ..models_workflow import Member, SpaceOwnership
 from ..security import APIError, body, csrf_token, member_required
+from ..services import identity
 
 bp = Blueprint('accounts', __name__, url_prefix='/api/v1/accounts')
 # 不存在的邮箱也计算哈希验证，避免显著的密码耗时差异。
 DUMMY_HASH = generate_password_hash(secrets.token_urlsafe(32))
+
+
+@bp.before_request
+def identity_request_bound():
+    request.max_content_length = 16384
 
 
 def account_data(member):
@@ -30,7 +36,7 @@ def credentials(data):
     return email.strip().lower(), password
 
 
-def establish(member, space_id):
+def establish(member, space_id, auth_epoch):
     # 登录不吞并访客资料，也不丢弃返回该访客档案的凭据。
     # 仅保存已持有、尚未被任何账户认领的空间引用，不保存正文或密码。
     guest = session.get('guest_space')
@@ -38,6 +44,8 @@ def establish(member, space_id):
         guest = {'id': g.owner.id, 'version': g.owner.access_version}
     session.clear()
     login_user(member)
+    # 必须使用授权锁内捕获的版本；提交后重读可能错误接受刚发生的撤销。
+    session['auth_epoch'] = auth_epoch
     if guest:
         session['guest_space'] = guest
     space = db.session.get(LocalSpace, space_id)
@@ -53,6 +61,11 @@ def register():
         raise APIError('请先退出当前账户。', 409)
     data = body()
     email, password = credentials(data)
+    if current_app.config.get('SHARED_IDENTITY_ENABLED'):
+        identity.limit(request.remote_addr or 'unknown', 'browser-auth', 90, 300)
+        member, space = identity.register(data.get('challengeId'), data.get('code'), password,
+            data.get('name'), g.owner if data.get('claimCurrentSpace') is True else None, expected_email=email)
+        return establish(member, space.id, 0), 201
     name = data.get('name', '')
     if not isinstance(name, str) or not 1 <= len(name.strip()) <= 80:
         raise APIError('姓名须为 1—80 个字符。', code='name')
@@ -69,7 +82,7 @@ def register():
         raise APIError('此档案已有账户归属，无法重复认领。', 409)
     db.session.add(SpaceOwnership(space_id=space.id, member_id=member.id))
     db.session.commit()
-    return establish(member, space.id), 201
+    return establish(member, space.id, 0), 201
 
 
 @bp.post('/login')
@@ -77,10 +90,19 @@ def register():
 def login():
     data = body()
     email, password = credentials(data)
+    if current_app.config.get('SHARED_IDENTITY_ENABLED'):
+        identity.limit(request.remote_addr or 'unknown', 'browser-auth', 90, 300)
+        identity.limit(email, 'login', 15, 300)
     member = db.session.scalar(select(Member).where(Member.email == email))
     valid = check_password_hash(member.password_hash if member else DUMMY_HASH, password)
     if not member or not valid:
         raise APIError('邮箱或密码不正确。', 401, 'invalid_credentials')
+    # 与找回密码串行，避免哈希校验期间发生重置后仍建立旧密码会话。
+    previous = member.password_hash
+    member = identity.lock_member(member.id)
+    if member.password_hash != previous:
+        raise APIError('邮箱或密码不正确。', 401, 'invalid_credentials')
+    auth_epoch = member.auth_epoch
     link = db.session.scalar(select(SpaceOwnership).where(SpaceOwnership.member_id == member.id).order_by(SpaceOwnership.space_id))
     if not link:
         space = LocalSpace()
@@ -89,7 +111,29 @@ def login():
         link = SpaceOwnership(space_id=space.id, member_id=member.id)
         db.session.add(link)
         db.session.commit()
-    return establish(member, link.space_id)
+    return establish(member, link.space_id, auth_epoch)
+
+
+@bp.get('/capabilities')
+def capabilities():
+    return {'data': {'sharedIdentity': bool(current_app.config.get('SHARED_IDENTITY_ENABLED')), 'region': 'cn'}}
+
+
+@bp.post('/code')
+def code():
+    identity.enabled()
+    identity.limit(request.remote_addr or 'unknown', 'browser-auth', 90, 300)
+    data = body()
+    return {'data': identity.request_code(data.get('email'), data.get('purpose'))}
+
+
+@bp.post('/reset-password')
+def reset_password():
+    identity.enabled()
+    identity.limit(request.remote_addr or 'unknown', 'browser-auth', 90, 300)
+    data = body()
+    return {'data': identity.reset_password(data.get('challengeId'), data.get('code'), data.get('password'),
+        expected_email=identity.email_address(data.get('email')))}
 
 
 @bp.post('/logout')

@@ -23,6 +23,10 @@ def csrf_token():
 
 
 def load_user():
+    if request.path.startswith('/v1/'):
+        # 移动端完全独立于 Cookie/访客空间，失败请求不创建空相册。
+        g.member = g.user = g.owner = None
+        return
     if request.path.startswith('/static/') or request.path == '/health':
         # 静态资源不加载登录会话，避免并发资源响应写回过时的身份/CSRF Cookie。
         g.member = g.user = g.owner = None

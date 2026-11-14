@@ -7,7 +7,7 @@ const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;
 const money=cents=>new Intl.NumberFormat(locale(),{style:'currency',currency:'CNY'}).format(cents/100);
 const labels={draft:t('草稿'),submitted:t('待审核'),returned:t('需修改'),approved:t('待制作'),ready:t('已完成'),unpaid:t('待支付')};
 let member=null,records=[],memoirs=[],products=[],current=null,edit=null,productEdit=null,dirty=false,loadId=0;
-let authMode='login',orderRequest=null,coverFile=null;
+let authMode='login',orderRequest=null,coverFile=null,sharedIdentity=false,emailChallenge=null;
 const status=state=>h`<span class="badge">${esc(labels[state]||state)}</span>`;
 const versionBody=item=>({version:item.version,revisionId:item.revisionId});
 function error(value){errorBox.textContent=value?.message||String(value);errorBox.hidden=false;}
@@ -21,7 +21,7 @@ root.addEventListener('input',event=>{if(event.target.closest('[data-dirty]')&&e
 document.addEventListener('click',event=>{if(event.target.closest('a')&&dirty){if(!confirm(t('当前修改尚未保存，确认离开吗？')))event.preventDefault();else dirty=false;}},true);
 document.querySelector('nav').addEventListener('click',event=>{const link=event.target.closest('[data-tab]');if(link&&!event.defaultPrevented&&link.hash===location.hash){event.preventDefault();route();}});
 
-async function refreshSession(){const session=await getSession();member=session.member;document.getElementById('admin-link').hidden=member?.role!=='admin';document.getElementById('account-link').textContent=member?member.name:t('登录 / 注册');}
+async function refreshSession(){const session=await getSession();const capabilities=await api('/accounts/capabilities');sharedIdentity=capabilities.sharedIdentity;member=session.member;document.getElementById('admin-link').hidden=member?.role!=='admin';document.getElementById('account-link').textContent=member?member.name:t('登录 / 注册');}
 async function route(){
   const id=++loadId;clearError();current=null;edit=null;productEdit=null;coverFile=null;
   document.querySelectorAll('[data-tab]').forEach(link=>link.toggleAttribute('aria-current',location.hash.slice(1)===link.dataset.tab));
@@ -46,8 +46,8 @@ async function route(){
 
 function renderAccount(){
   if(member){root.innerHTML=heading('YOUR ACCOUNT',t('你好，')+esc(member.name),t('此账户统一管理人生相册、回忆录和订单。'))+h`<section class="card"><p>${esc(member.email)}</p>${status(member.role==='admin'?t('制作与商城管理员'):t('普通用户'))}<div class="actions"><a class="button" href="/">进入人生相册</a><a class="button primary" href="#memoirs">我的回忆录</a><button data-action="logout">退出账户</button></div></section>`;return;}
-  const registering=authMode==='register';
-  root.innerHTML=h`<section class="auth">${heading('KEEP YOUR STORIES',registering?t('建立你的私人账户'):t('欢迎回来'),registering?t('可选择将当前浏览器的访客档案归入新账户。资料原 ID 和照片保持不变。'):t('登录已有账户，不会自动转移当前访客档案。'))}<form id="account-form" class="card">${registering?h('<label>显示姓名<input name="name" required maxlength="80" autocomplete="name"></label>'):''}<label>邮箱<input name="email" type="email" required maxlength="254" autocomplete="username"></label><label>密码（10—128 个字符）<input name="password" type="password" required minlength="10" maxlength="128" autocomplete="${registering?'new-password':'current-password'}"></label>${registering?h('<label class="check"><input name="claim" type="checkbox"><span>我确认将当前访客档案归入此新账户；之后须登录此账户访问。</span></label>'):''}<button class="primary" type="submit">${registering?t('注册并进入'):t('登录')}</button><div class="actions"><button type="button" data-action="auth-mode">${registering?t('已有账户，去登录'):t('没有账户，去注册')}</button><a href="/">返回访客相册</a></div><p class="muted">管理员由服务器维护者建立；公开注册仅创建普通用户。</p></form></section>`;
+  const registering=authMode==='register',resetting=authMode==='reset',verifying=sharedIdentity&&(registering||resetting);
+  root.innerHTML=h`<section class="auth">${heading('KEEP YOUR STORIES',resetting?t('找回密码'):registering?t('建立你的私人账户'):t('欢迎回来'),resetting?t('验证邮箱后设置新密码。原账号与资料保留，其他设备需要重新登录。'):registering?t('可选择将当前浏览器的访客档案归入新账户。资料原 ID 和照片保持不变。'):t('登录已有账户，不会自动转移当前访客档案。'))}<form id="account-form" class="card">${registering?h('<label>显示姓名<input name="name" required maxlength="80" autocomplete="name"></label>'):''}<label>邮箱<input name="email" type="email" required maxlength="254" autocomplete="username"></label>${verifying?h('<label>邮箱验证码<input name="code" inputmode="numeric" pattern="[0-9]{8}" minlength="8" maxlength="8" autocomplete="one-time-code" required></label><button type="button" data-action="send-code">发送验证码</button><p id="code-status" role="status" class="muted"></p>'):''}<label>${verifying?t('新密码（12—128 个字符）'):t('密码（10—128 个字符）')}<input name="password" type="password" required minlength="${verifying?12:10}" maxlength="128" autocomplete="${registering||resetting?'new-password':'current-password'}"></label>${registering?h('<label class="check"><input name="claim" type="checkbox"><span>我确认将当前访客档案归入此新账户；之后须登录此账户访问。</span></label>'):''}<button class="primary" type="submit">${resetting?t('确认重置密码'):registering?t('注册并进入'):t('登录')}</button><div class="actions"><button type="button" data-action="auth-mode">${registering||resetting?t('已有账户，去登录'):t('没有账户，去注册')}</button>${sharedIdentity&&!resetting?h('<button type="button" data-action="forgot-password">忘记密码</button>'):''}<a href="/">返回访客相册</a></div><p class="muted">管理员由服务器维护者建立；公开注册仅创建普通用户。</p></form></section>`;
 }
 function renderMemoirs(){root.innerHTML=heading('MEMOIRS',t('把零散的片段，整理成一个故事'),t('挑选自己的记录，决定章节与分享范围，再交给制作管理员审核。'))+h('<div class="actions"><button class="primary" data-action="new-memoir">整理新回忆录</button><a class="button" href="/">回到人生相册</a></div>')+ (memoirs.length?h`<div class="grid">${memoirs.map(m=>h`<article class="card">${status(m.state)}<h2>${esc(m.title)}</h2><p>${esc(m.theme)||t('尚未填写主题')}</p><p class="muted">提交版本 ${m.revisionNumber} ${m.reason?'· '+esc(m.reason):''}</p><button data-memoir="${esc(m.id)}">${['draft','returned'].includes(m.state)?t('继续整理'):t('查看进度与成品')}</button></article>`).join('')}</div>`:h('<div class="empty">第一本回忆录，从一段想留下的经历开始。</div>'));}
 function chapterInput(record){return {recordId:record.id,version:record.version,heading:record.title,photoUris:[]};}
@@ -95,7 +95,16 @@ root.addEventListener('click',async event=>{
   try{
     const action=button.dataset.action;
     if(action==='reload')await route();
-    if(action==='auth-mode'){authMode=authMode==='login'?'register':'login';renderAccount();}
+    if(action==='auth-mode'){authMode=authMode==='login'?'register':'login';emailChallenge=null;renderAccount();}
+    if(action==='forgot-password'){authMode='reset';emailChallenge=null;renderAccount();}
+    if(action==='send-code'){
+      const form=document.getElementById('account-form'),input=form.elements.email;
+      if(!input.reportValidity())return;
+      const address=input.value.trim().toLowerCase(),purpose=authMode==='reset'?'reset':'register';
+      const result=await api('/accounts/code',{method:'POST',json:{email:address,purpose}});
+      emailChallenge={id:result.challengeId,email:address,purpose};
+      document.getElementById('code-status').textContent=t('若此邮箱可用于本次操作，验证码将发送至邮箱，10 分钟内有效。请检查收件箱和垃圾邮件。');
+    }
     if(action==='logout'){await api('/accounts/logout',{method:'POST',json:{}});dirty=false;await refreshSession();if(location.hash==='#account')await route();else location.hash='account';}
     if(action==='new-memoir'){edit={title:'',theme:'',chapters:[]};renderEditor();}
     if(action==='back-memoirs')await back('memoirs');
@@ -121,7 +130,12 @@ root.addEventListener('submit',async event=>{
   event.preventDefault();clearError();const form=event.target,buttons=[...form.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);
   try{
     if(form.id==='account-form'){
-      const fields=new FormData(form);await api('/accounts/'+authMode,{method:'POST',json:{email:fields.get('email'),password:fields.get('password'),name:fields.get('name'),claimCurrentSpace:fields.get('claim')==='on'}});dirty=false;await refreshSession();location.hash='memoirs';
+      const fields=new FormData(form),email=fields.get('email').trim().toLowerCase(),verifying=sharedIdentity&&authMode!=='login';
+      if(verifying&&(!emailChallenge||emailChallenge.email!==email||emailChallenge.purpose!==(authMode==='reset'?'reset':'register')))throw new Error(t('请先为当前邮箱获取验证码。'));
+      await api('/accounts/'+(authMode==='reset'?'reset-password':authMode),{method:'POST',json:{email,password:fields.get('password'),name:fields.get('name'),claimCurrentSpace:fields.get('claim')==='on',challengeId:verifying?emailChallenge.id:undefined,code:verifying?fields.get('code'):undefined}});
+      dirty=false;emailChallenge=null;
+      if(authMode==='reset'){authMode='login';await refreshSession();renderAccount();errorBox.textContent=t('密码已重置，请使用新密码登录。');errorBox.hidden=false;}
+      else{await refreshSession();location.hash='memoirs';}
     }else if(form.id==='memoir-form'){
       syncEditor();const saved=await api('/memoirs'+(edit.id?'/'+edit.id:''),{method:edit.id?'PUT':'POST',json:edit});dirty=false;edit=saved;renderEditor();
     }else if(form.id==='review-form'){

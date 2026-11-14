@@ -12,6 +12,7 @@ from .config import settings
 from .extensions import db, limiter, migrate, login_manager
 from .security import APIError, load_user
 from .i18n import error_message, translate, ui_locale
+from flask import session
 
 
 @event.listens_for(Engine, "connect")
@@ -31,19 +32,34 @@ def create_app(test_config=None):
     else:
         app.config.update(SECRET_KEY="tests-only", SQLALCHEMY_DATABASE_URI="sqlite://", TESTING=True, RATELIMIT_ENABLED=False)
         app.config.update(test_config)
+    if app.config.get('SHARED_IDENTITY_ENABLED'):
+        import re
+        if not re.fullmatch(r'[a-fA-F0-9]{64}', app.config.get('IDENTITY_SECRET', '')):
+            raise RuntimeError('共用身份需要独立的 32 字节 IDENTITY_SECRET（十六进制）。')
+        if app.config.get('IDENTITY_SMTP_TLS', 'implicit') not in ('implicit', 'starttls'):
+            raise RuntimeError('SMTP 必须使用 implicit TLS 或 STARTTLS。')
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
+    if app.config.get('TRUST_LOOPBACK_PROXY'):
+        from .proxy import LoopbackProxy
+        app.wsgi_app = LoopbackProxy(app.wsgi_app)
     db.init_app(app)
     migrate.init_app(app, db)
     limiter.init_app(app)
     login_manager.init_app(app)
     from .models_workflow import Member
+    from . import models_identity
 
     @login_manager.user_loader
     def member_loader(member_id):
-        return db.session.get(Member, member_id)
+        member = db.session.get(Member, member_id)
+        if member and session.get('auth_epoch', 0) == member.auth_epoch:
+            return member
+        return None
     from .api import auth, drafts, graph, records, accounts, memoirs, shop
     for blueprint in (auth.bp, records.bp, graph.bp, drafts.bp, accounts.bp, memoirs.bp, shop.bp):
         app.register_blueprint(blueprint)
+    from .api.mobile_identity import bp as mobile_identity_bp
+    app.register_blueprint(mobile_identity_bp)
     app.before_request(load_user)
 
     @app.context_processor
@@ -81,7 +97,7 @@ def create_app(test_config=None):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "same-origin"
         response.headers["Content-Security-Policy"] = "default-src 'self'; img-src 'self' blob: data:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
-        if request.path.startswith(("/api/", "/login", "/workspace")) or request.path == "/":
+        if request.path.startswith(("/api/", "/v1/", "/login", "/workspace")) or request.path == "/":
             response.headers["Cache-Control"] = "no-store, private"
         return response
 
@@ -93,6 +109,8 @@ def create_app(test_config=None):
     @app.errorhandler(IntegrityError)
     def conflict(error):
         db.session.rollback()
+        if request.path.startswith('/v1/'):
+            return jsonify(error='account_exists'), 409
         return jsonify(error={"code": "conflict", "message": translate("数据已存在或已被修改，请刷新后重试。")}), 409
 
     @app.errorhandler(SQLAlchemyError)
@@ -100,6 +118,8 @@ def create_app(test_config=None):
         db.session.rollback()
         # 不记录 SQL 参数，避免日记正文与密码进入日志。
         app.logger.error("数据库操作失败：%s", type(error).__name__)
+        if request.path.startswith('/v1/'):
+            return jsonify(error='temporarily_unavailable'), 503
         return jsonify(error={"code": "database_unavailable", "message": translate("暂时无法保存或读取数据，请稍后重试。")}), 503
 
     @app.errorhandler(HTTPException)

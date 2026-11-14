@@ -13,6 +13,8 @@ class Member(UserMixin, db.Model):
     name = db.Column(db.String(80), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(16), nullable=False, default='user')
+    auth_epoch = db.Column(db.Integer, nullable=False, default=0, server_default='0')
+    email_verified_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=now)
 
 

@@ -4,3 +4,6 @@
 
 /* 暖色商品封面和原有卡片共用宽度，手机端不裁切主体。 */
 .product-cover{position:relative;margin:-25px -25px 20px;border-radius:15px 15px 0 0;overflow:hidden;background:#f2eee5}.product-cover img{display:block;width:100%;aspect-ratio:1/1;object-fit:contain}.product-cover figcaption{position:absolute;bottom:10px;left:12px;padding:3px 9px;background:#fffdf5df;border-radius:20px;color:#716751;font-size:11px}.product-cover--detail{margin:0 auto 24px;max-width:420px;border-radius:12px}.product-card{overflow:hidden}@media(max-width:760px){.product-cover{margin:-20px -20px 18px}.product-cover--detail{margin:0 auto 20px}}
+/* 账户操作可自然换行，窄屏下不把“已有账户，去登录”挤成多行字。 */
+.auth .actions { flex-wrap: wrap; }
+.auth .actions > button, .auth .actions > a { flex: 0 0 auto; }

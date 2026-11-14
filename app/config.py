@@ -28,4 +28,13 @@ def settings():
         "MAX_CONTENT_LENGTH": 520 * 1024 * 1024,
         "RATELIMIT_STORAGE_URI": os.getenv("RATELIMIT_STORAGE_URI", "memory://"),
         "EVENT_TIMEZONE": os.getenv("EVENT_TIMEZONE", "Asia/Shanghai"),
+        "SHARED_IDENTITY_ENABLED": os.getenv('SHARED_IDENTITY_ENABLED', 'false').lower() == 'true',
+        "TRUST_LOOPBACK_PROXY": os.getenv('TRUST_LOOPBACK_PROXY', 'false').lower() == 'true',
+        "IDENTITY_SECRET": os.getenv('IDENTITY_SECRET', ''),
+        "IDENTITY_SMTP_HOST": os.getenv('IDENTITY_SMTP_HOST', ''),
+        "IDENTITY_SMTP_PORT": int(os.getenv('IDENTITY_SMTP_PORT', '465')),
+        "IDENTITY_SMTP_TLS": os.getenv('IDENTITY_SMTP_TLS', 'implicit'),
+        "IDENTITY_SMTP_USER": os.getenv('IDENTITY_SMTP_USER', ''),
+        "IDENTITY_SMTP_PASSWORD": os.getenv('IDENTITY_SMTP_PASSWORD', ''),
+        "IDENTITY_MAIL_FROM": os.getenv('IDENTITY_MAIL_FROM', ''),
     }

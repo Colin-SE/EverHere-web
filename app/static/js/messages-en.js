@@ -1012,5 +1012,20 @@ export default {
   "管理员只能处理自己领取的回忆录材料，不能浏览或改写用户原始相册。": "Administrators can process only memoirs they have claimed. They cannot browse or edit your original album.",
   "回忆录成品只开放样张预览。商城可保存待支付订单，付款、退款、印刷与物流尚未开放。": "Only sample previews of completed memoirs are available. The shop saves unpaid orders. Payments, refunds, printing and shipping are not available.",
   "正式记录和照片保留": "Saved records and photos are retained",
-  "预览暂时无法读取，请稍后重试。": "The preview is temporarily unavailable. Try again later."
+  "预览暂时无法读取，请稍后重试。": "The preview is temporarily unavailable. Try again later.",
+  "找回密码": "Reset password",
+  "忘记密码": "Forgot password",
+  "验证邮箱后设置新密码。原账号与资料保留，其他设备需要重新登录。": "Verify your email to set a new password. Your account and records are retained. Other devices will need to sign in again.",
+  "邮箱验证码": "Email verification code",
+  "发送验证码": "Send code",
+  "新密码（12—128 个字符）": "New password (12–128 characters)",
+  "确认重置密码": "Reset password",
+  "若此邮箱可用于本次操作，验证码将发送至邮箱，10 分钟内有效。请检查收件箱和垃圾邮件。": "If this address is eligible, a code will arrive by email. It expires in 10 minutes. Check your inbox and spam folder.",
+  "请先为当前邮箱获取验证码。": "Request a code for the current email address first.",
+  "密码已重置，请使用新密码登录。": "Password reset. Sign in with your new password.",
+  "验证码不正确、已过期或已使用。输入已保留，可重新获取验证码。": "The code is incorrect, expired or already used. Your input is retained; request another code.",
+  "验证码邮件暂时无法发送，请稍后重试。": "We could not send the verification email. Try again later.",
+  "新密码须为 12—128 个字符。": "Your new password must contain 12–128 characters.",
+  "账号服务尚未配置，请稍后再试。": "Account service is not configured yet. Try again later.",
+  "账户操作未完成，请检查输入或稍后重试。": "We could not complete the account request. Check your input or try again later."
 };

@@ -21,8 +21,7 @@ from test_workflows import administrator, register, draft, submit, action, produ
     ('POST', '/archive/files/preview'), ('GET', '/archive/jobs'),
     ('GET', '/cloud/status'), ('POST', '/cloud/login'),
     ('POST', '/cloud/logout'), ('POST', '/cloud/push'), ('POST', '/cloud/pull'),
-    ('POST', '/shop/orders/any/pay'), ('POST', '/shop/orders/any/cancel'),
-    ('POST', '/shop/orders/any/refund'), ('POST', '/admin/orders/any/ship'),
+    ('POST', '/shop/orders/any/pay'), ('POST', '/admin/orders/any/ship'),
 ])
 def test_removed_features_have_no_callable_routes(client, method, path):
     assert client.call(method, path, {} if method == 'POST' else None).status_code == 404

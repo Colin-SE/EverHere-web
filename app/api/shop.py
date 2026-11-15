@@ -20,7 +20,8 @@ KINDS = {'medal', 'gift', 'memoir_digital', 'memoir_paper'}
 
 def variant_data(variant):
     return {'id': variant.id, 'name': variant.name, 'kind': variant.kind, 'priceCents': variant.price_cents, 'active': variant.active,
-            'textRequired': variant.text_required, 'photoRequired': variant.photo_required, 'version': variant.version}
+            'textRequired': variant.text_required, 'photoRequired': variant.photo_required, 'version': variant.version,
+            'stockAvailable': variant.stock_available}
 
 
 def product_data(product, staff=False):
@@ -107,6 +108,13 @@ def save_product(data, product=None):
         variant.active = boolean(raw, 'active', True)
         variant.text_required = boolean(raw, 'textRequired', kind in {'gift', 'medal'})
         variant.photo_required = boolean(raw, 'photoRequired', False)
+        if 'stockAvailable' in raw:
+            stock = raw['stockAvailable']
+            if stock is not None and (type(stock) is not int or not 0 <= stock <= 1000000):
+                raise APIError('可售库存须为 0—1000000 的整数。', code='stockAvailable')
+            if variant.stock_available is not None and stock is None:
+                raise APIError('已有库存记录的款式须继续管理库存。', code='stockAvailable')
+            variant.stock_available = stock
         if variant_id:
             variant.version += 1
         db.session.add(variant)

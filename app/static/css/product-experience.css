@@ -87,6 +87,11 @@
 .progress-list { padding-inline-start: 1.5rem; }
 .progress-list li { padding: .4rem 0; }
 .progress-list time { font-size: .9rem; color: #57645c; }
+.trade-form { margin-block: .85rem; }
+.trade-address { overflow-wrap: anywhere; }
+.trade-address dt { font-weight: 700; }
+.trade-address dd { margin-inline-start: 0; }
+.progress-list time { margin-inline-start: .5rem; }
 
 .product-gallery {
   display: grid;

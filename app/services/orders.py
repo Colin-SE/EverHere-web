@@ -6,9 +6,11 @@ from sqlalchemy import func, select
 
 from ..extensions import db
 from ..models import now
+from ..models_trade import OrderTrade, TradeEvent
 from ..models_workflow import Member, OrderEvent, ShopOrder, ShopOrderItem
 from ..security import APIError, page_number
 from .records import date_value, text
+from . import commerce
 
 STATES = ('pending', 'processing', 'needs_info', 'completed', 'cancelled')
 TRANSITIONS = {
@@ -23,12 +25,13 @@ MAX_PAGE_SIZE = 25
 
 
 def order_data(order, *, staff=False, detail=True):
+    client = commerce.gateway(required=False)
     data = {
         'id': order.id, 'state': order.state, 'processingState': order.processing_state,
         'version': order.version, 'totalCents': order.total_cents,
         'createdAt': order.created_at.isoformat() + 'Z',
         'updatedAt': (order.updated_at or order.created_at).isoformat() + 'Z',
-        'paymentAvailable': False,
+        'paymentAvailable': client is not None,
     }
     items = db.session.scalars(select(ShopOrderItem).where(ShopOrderItem.order_id == order.id).order_by(ShopOrderItem.id))
     can_handle = staff and order.assignee_id == g.member.id and order.buyer_id != g.member.id
@@ -54,6 +57,32 @@ def order_data(order, *, staff=False, detail=True):
             'createdAt': event.created_at.isoformat() + 'Z',
             **({'actorId': event.actor_id, 'visible': event.visible} if staff else {}),
         } for event in db.session.scalars(query)]
+        trade = db.session.get(OrderTrade, order.id)
+        physical = any(item['snapshot']['kind'] != commerce.ELECTRONIC for item in data['items'])
+        data.update(physical=physical, canPay=bool(client and not staff and (
+            order.state == 'unpaid' and order.processing_state != 'cancelled' or
+            order.state == 'confirming' and trade and trade.expires_at > now())),
+            canCancel=bool(client and not staff and order.state in ('unpaid', 'confirming', 'closing')),
+            canCheck=bool(client and trade and order.state in ('confirming', 'closing', 'closed', 'review', 'refunding')))
+        if trade:
+            data['trade'] = {
+                'fulfillment': trade.fulfillment, 'address': trade.address,
+                'carrier': trade.carrier, 'tracking': trade.tracking,
+                'refundState': trade.refund_state, 'refundReason': trade.refund_reason,
+                'expiresAt': trade.expires_at.isoformat() + 'Z', 'environment': trade.environment,
+                'canRequestRefund': bool(client and not staff and order.state in ('paid', 'review') and
+                    not trade.refund_state and trade.fulfillment not in ('started', 'shipped', 'received')),
+                'canApproveRefund': bool(client and can_handle and (order.state == 'review' or
+                    trade.refund_state in ('requested', 'uncertain', 'sending', 'rejected'))),
+            }
+            timeline = select(TradeEvent).where(TradeEvent.order_id == order.id)
+            timeline = timeline.where(TradeEvent.kind != 'alipay_notice').order_by(TradeEvent.created_at, TradeEvent.id)
+            data['trade']['events'] = [{'kind': entry.kind, 'at': entry.created_at.isoformat() + 'Z'}
+                                       for entry in db.session.scalars(timeline)]
+            if not staff and order.state == 'paid' and not trade.refund_state:
+                for item in data['items']:
+                    if item['snapshot']['kind'] == commerce.ELECTRONIC:
+                        item['downloadUrl'] = f"/api/v1/shop/orders/{order.id}/items/{item['id']}/download"
     return data
 
 

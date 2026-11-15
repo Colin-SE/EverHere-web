@@ -23,7 +23,7 @@ def csrf_token():
 
 
 def load_user():
-    if request.path.startswith('/v1/'):
+    if request.path.startswith('/v1/') or request.path == '/payments/alipay/notify':
         # 移动端完全独立于 Cookie/访客空间，失败请求不创建空相册。
         g.member = g.user = g.owner = None
         return

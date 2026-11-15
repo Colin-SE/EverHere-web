@@ -9,6 +9,39 @@ from .models_workflow import Member, SpaceOwnership
 
 
 def register_commands(app):
+    @app.cli.command('reconcile-alipay')
+    @click.option('--date', 'bill_date', required=True, type=click.DateTime(formats=['%Y-%m-%d']))
+    @click.option('--bill', required=True, type=click.File('rb'))
+    def reconcile_alipay(bill_date, bill):
+        from .services.alipay import AlipayError
+        from .services.alipay_reconciliation import compare_bill
+        from .services.commerce import gateway
+        client = gateway(required=False)
+        if not client:
+            raise click.ClickException('支付宝尚未配置。')
+        try:
+            missing, extra = compare_bill(bill.read(20 * 1024 * 1024 + 1), bill_date.date(), client)
+        except (ValueError, AlipayError) as error:
+            raise click.ClickException('账单格式或金额无效。') from error
+        from json import dumps
+        for label, rows in [('local_only', missing), ('bill_only', extra)]:
+            for (merchant_no, provider_no, kind, batch, cents), count in rows.items():
+                click.echo(dumps({'difference': label, 'merchantNo': merchant_no, 'providerNo': provider_no,
+                                  'kind': kind, 'refundNo': batch, 'amountCents': cents, 'count': count},
+                                 ensure_ascii=False))
+        if missing or extra:
+            raise click.ClickException('发现对账差异，须人工核对；本命令不会修改订单。')
+        click.echo('本地交易与支付宝账单一致。')
+
+    @app.cli.command('expire-alipay-orders')
+    @click.option('--limit', default=25, type=click.IntRange(1, 100))
+    def expire_alipay_orders(limit):
+        from .services.commerce import expire_overdue, gateway
+        if not gateway(required=False):
+            raise click.ClickException('支付宝尚未配置。')
+        checked, failed = expire_overdue(limit)
+        click.echo(f'核对 {checked} 笔超时订单，{failed} 笔待渠道复核。')
+
     @app.cli.command('create-admin')
     @click.option('--email', prompt='管理员邮箱')
     @click.option('--name', prompt='显示姓名')

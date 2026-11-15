@@ -37,4 +37,11 @@ def settings():
         "IDENTITY_SMTP_USER": os.getenv('IDENTITY_SMTP_USER', ''),
         "IDENTITY_SMTP_PASSWORD": os.getenv('IDENTITY_SMTP_PASSWORD', ''),
         "IDENTITY_MAIL_FROM": os.getenv('IDENTITY_MAIL_FROM', ''),
+        "ALIPAY_MODE": os.getenv('ALIPAY_MODE', 'disabled'),
+        "ALIPAY_SANDBOX_GATEWAY": os.getenv('ALIPAY_SANDBOX_GATEWAY', ''),
+        "ALIPAY_PUBLIC_ORIGIN": os.getenv('ALIPAY_PUBLIC_ORIGIN', ''),
+        "ALIPAY_APP_ID": os.getenv('ALIPAY_APP_ID', ''),
+        "ALIPAY_SELLER_ID": os.getenv('ALIPAY_SELLER_ID', ''),
+        "ALIPAY_PRIVATE_KEY_FILE": os.getenv('ALIPAY_PRIVATE_KEY_FILE', ''),
+        "ALIPAY_PUBLIC_KEY_FILE": os.getenv('ALIPAY_PUBLIC_KEY_FILE', ''),
     }

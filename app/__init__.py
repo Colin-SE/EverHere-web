@@ -48,7 +48,13 @@ def create_app(test_config=None):
     limiter.init_app(app)
     login_manager.init_app(app)
     from .models_workflow import Member
-    from . import models_identity
+    from . import models_identity, models_trade
+    from .services.alipay import Alipay, GATEWAYS
+    mode = app.config.get('ALIPAY_MODE', 'disabled')
+    if mode != 'disabled':
+        if mode not in GATEWAYS:
+            raise RuntimeError('支付宝环境须为 disabled、sandbox 或 production。')
+        app.extensions['everhere_alipay'] = Alipay(app.config)
 
     @login_manager.user_loader
     def member_loader(member_id):
@@ -56,9 +62,9 @@ def create_app(test_config=None):
         if member and session.get('auth_epoch', 0) == member.auth_epoch:
             return member
         return None
-    from .api import auth, drafts, graph, records, accounts, memoirs, shop, order_processing, connections, home
+    from .api import auth, drafts, graph, records, accounts, memoirs, shop, order_processing, connections, home, payments
     for blueprint in (auth.bp, records.bp, graph.bp, drafts.bp, accounts.bp, memoirs.bp, shop.bp,
-                      order_processing.bp, connections.bp, home.bp):
+                      order_processing.bp, connections.bp, home.bp, payments.bp):
         app.register_blueprint(blueprint)
     from .api.mobile_identity import bp as mobile_identity_bp
     app.register_blueprint(mobile_identity_bp)

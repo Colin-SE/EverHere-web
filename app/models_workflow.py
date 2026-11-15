@@ -83,6 +83,7 @@ class ProductVariant(db.Model):
     name = db.Column(db.String(120), nullable=False)
     kind = db.Column(db.String(24), nullable=False)
     price_cents = db.Column(db.Integer, nullable=False)
+    stock_available = db.Column(db.Integer, nullable=True)
     active = db.Column(db.Boolean, nullable=False, default=True)
     text_required = db.Column(db.Boolean, nullable=False, default=True)
     photo_required = db.Column(db.Boolean, nullable=False, default=False)

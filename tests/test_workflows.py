@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 from PIL import Image
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from conftest import Client
 from app.extensions import db
@@ -288,24 +288,29 @@ def test_additive_migration_preserves_existing_sources_photos_and_drafts():
     runner = application.test_cli_runner()
     assert runner.invoke(args=['db', 'upgrade', '20261020_remove_legacy']).exit_code == 0
     # 在新账户结构上线前建立旧空间/记录，模拟真实升级而非仅测试空库。
-    from app.models import LocalSpace, Draft
+    from app.models import LocalSpace, Draft, now
     with application.app_context():
         space = LocalSpace()
         db.session.add(space)
         db.session.flush()
         record = LifeRecord(user_id=space.id, title='升级前的记录', content='不能丢失', record_state='occurred', payload={})
-        photo = Photo(user_id=space.id, content_type='image/png', data=image_bytes())
+        photo_id = str(uuid4())
+        db.session.execute(text('INSERT INTO photos (id, user_id, content_type, data, created_at) '
+                                'VALUES (:id, :owner, :kind, :data, :created)'),
+                           {'id': photo_id, 'owner': space.id, 'kind': 'image/png',
+                            'data': image_bytes(), 'created': now()})
         draft_row = Draft(owner_id=space.id, kind='record', payload={'title': '未完成草稿'})
-        db.session.add_all([record, photo, draft_row])
+        db.session.add_all([record, draft_row])
         db.session.commit()
-        ids = record.id, photo.id, draft_row.id
+        ids = record.id, photo_id, draft_row.id
     result = runner.invoke(args=['db', 'upgrade'])
     assert result.exit_code == 0, result.output
     checked = runner.invoke(args=['db', 'check'])
     assert checked.exit_code == 0, checked.output
     with application.app_context():
         assert db.session.get(LifeRecord, ids[0]).content == '不能丢失'
-        assert db.session.get(Photo, ids[1]).data == image_bytes()
+        photo = db.session.get(Photo, ids[1])
+        assert photo.data == image_bytes() and photo.thumbnail_data is None
         assert db.session.get(Draft, ids[2]).payload['title'] == '未完成草稿'
         db.session.remove()
         db.engine.dispose()

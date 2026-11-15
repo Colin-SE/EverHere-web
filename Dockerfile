@@ -6,7 +6,7 @@ COPY requirements.lock.txt ./
 RUN pip install --no-cache-dir -r requirements.lock.txt
 COPY app ./app
 COPY migrations ./migrations
-COPY wsgi.py sync_contract.py ./
+COPY wsgi.py ./
 RUN useradd --create-home album && mkdir -p /app/instance && chown -R album:album /app
 USER album
 EXPOSE 5000

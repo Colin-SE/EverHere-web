@@ -9,8 +9,8 @@ const fs=require('node:fs/promises');
  const base=process.env.TEST_BASE_URL||'http://127.0.0.1:5003';assert.match(base,/^http:\/\/(127\.0\.0\.1|localhost):(5003|5004)$/);
  // F1—F4 的隔离服务器使用 5004；仍须确认是 SQLite 合成环境，不能向 MySQL 日常库写验收资料。
  assert.equal((await (await page.request.get(base+'/health')).json()).database,'sqlite');
- const nav=async view=>{await page.locator(`#sidebar [data-view="${view}"]`).click();await page.waitForFunction(()=>!document.querySelector('#view-content .loading-state'));};
- const language=async value=>{await page.locator('[data-language-select]').selectOption(value);await page.waitForFunction(v=>document.documentElement.lang===v,value);await page.waitForFunction(()=>!document.querySelector('#view-content .loading-state'));};
+ const nav=async view=>{await page.locator(`#sidebar [data-view="${view}"]`).click();await page.waitForFunction(()=>!document.querySelector('#view-content[aria-busy="true"]'));};
+ const language=async value=>{await page.locator('[data-language-select]').selectOption(value);await page.waitForFunction(v=>document.documentElement.lang===v,value);await page.waitForFunction(()=>!document.querySelector('#view-content[aria-busy="true"]'));};
  const noChinese=async label=>{
    const text=await page.locator('body').innerText();
    const rest=text.replaceAll('简体中文','').replaceAll('人生记录','').replaceAll('人物','').replaceAll('保留中文正文与标签','').replaceAll('保留标签','');
@@ -49,13 +49,13 @@ const fs=require('node:fs/promises');
   await page.locator('[data-record="'+saved.id+'"]').click();await page.locator('#detail-dialog[open]').waitFor();assert.match(await page.locator('.detail-date').innerText(),/1960年2月/);
   await page.locator('[data-action="edit-record"]').click();await page.locator('#editor-dialog[open]').waitFor();assert.equal(await page.locator('[name="mood"]').inputValue(),'开心');
   await page.locator('[data-action="save-record-draft"]').click();await page.locator('#editor-dialog').waitFor({state:'hidden'});
-  await page.waitForFunction(()=>!document.querySelector('#view-content .loading-state'));
+  await page.waitForFunction(()=>!document.querySelector('#view-content[aria-busy="true"]'));
   await language('en');await nav('drafts');await page.locator('[data-resume-draft]').first().click();await page.locator('#editor-dialog[open]').waitFor();
   assert.equal(await page.locator('[name="content"]').inputValue(),'保留中文正文与标签');await page.locator('#save-record').click();await page.locator('#detail-dialog[open]').waitFor();await page.locator('[data-close="detail-dialog"]').click();
   await nav('entities');await page.locator('[data-focus-node]').first().click();await page.locator('.person-focus').waitFor();await noChinese('person');
   assert.equal(await page.locator('.person-focus h2').innerText(),'人物');
-  await page.route('**/api/v1/records?*',route=>route.abort());await nav('all');assert.match(await page.locator('.error-state').innerText(),/Connection interrupted/);await noChinese('network error');await page.unroute('**/api/v1/records?*');await page.locator('[data-action="retry"]').click();
-  await page.waitForFunction(()=>!document.querySelector('#view-content .loading-state'));
+  await page.route('**/api/v1/records?*',route=>route.abort());await nav('all');assert.match(await page.locator('#album-loading').innerText(),/Connection interrupted/);await noChinese('network error');await page.unroute('**/api/v1/records?*');await page.locator('[data-action="retry"]').click();
+  await page.waitForFunction(()=>!document.querySelector('#view-content[aria-busy="true"]'));
   const validation=await page.evaluate(async()=>{const session=(await(await fetch('/api/v1/auth/session')).json()).data;return (await(await fetch('/api/v1/records',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':session.csrfToken},body:JSON.stringify({title:'',content:''})})).json()).error;});assert.equal(validation.message,'Enter a title or some text.');
   await nav('home');await page.screenshot({path:'test-results/i18n-home-en.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});await page.goto(base);await page.locator('.life-hero').waitFor();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:'test-results/i18n-mobile-en.png',fullPage:true});

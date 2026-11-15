@@ -92,13 +92,18 @@ class ProductVariant(db.Model):
 class ShopOrder(db.Model):
     """F4 仅创建待支付订单；支付、取消与交付状态机在 F5 实施。"""
     __tablename__ = 'shop_orders'
-    __table_args__ = (db.UniqueConstraint('buyer_id', 'request_key'),)
+    __table_args__ = (db.UniqueConstraint('buyer_id', 'request_key'),
+                      db.Index('ix_shop_order_processing_created', 'processing_state', 'created_at', 'id'))
     id = db.Column(db.String(36), primary_key=True, default=new_id)
     buyer_id = db.Column(db.String(36), db.ForeignKey('members.id'), nullable=False, index=True)
     request_key = db.Column(db.String(64), nullable=False)
     request_hash = db.Column(db.String(64), nullable=False)
     total_cents = db.Column(db.Integer, nullable=False)
     state = db.Column(db.String(20), nullable=False, default='unpaid')
+    processing_state = db.Column(db.String(24), nullable=False, default='pending', server_default='pending')
+    assignee_id = db.Column(db.String(36), db.ForeignKey('members.id'), nullable=True, index=True)
+    version = db.Column(db.Integer, nullable=False, default=1, server_default='1')
+    updated_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=now)
 
 
@@ -112,4 +117,35 @@ class ShopOrderItem(db.Model):
     unit_price_cents = db.Column(db.Integer, nullable=False)
     snapshot = db.Column(db.JSON, nullable=False)
     photo_type = db.Column(db.String(40), nullable=True)
-    photo_data = db.Column(db.LargeBinary().with_variant(LONGBLOB(), 'mysql'), nullable=True)
+    photo_data = db.deferred(db.Column(db.LargeBinary().with_variant(LONGBLOB(), 'mysql'), nullable=True))
+
+
+class OrderEvent(db.Model):
+    __tablename__ = 'shop_order_events'
+    __table_args__ = (db.UniqueConstraint('order_id', 'version'),)
+    id = db.Column(db.String(36), primary_key=True, default=new_id)
+    order_id = db.Column(db.String(36), db.ForeignKey('shop_orders.id'), nullable=False)
+    actor_id = db.Column(db.String(36), nullable=False)
+    version = db.Column(db.Integer, nullable=False)
+    action = db.Column(db.String(24), nullable=False)
+    state = db.Column(db.String(24), nullable=False)
+    message = db.Column(db.String(2000), nullable=False)
+    visible = db.Column(db.Boolean, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=now)
+
+
+class MemoirJob(db.Model):
+    __tablename__ = 'memoir_jobs'
+    revision_id = db.Column(db.String(36), db.ForeignKey('memoir_revisions.id'), primary_key=True)
+    state = db.Column(db.String(12), nullable=False, index=True)
+    attempt = db.Column(db.Integer, nullable=False, default=1)
+    updated_at = db.Column(db.DateTime, nullable=False, default=now)
+
+
+class ProductGalleryImage(db.Model):
+    __tablename__ = 'product_gallery_images'
+    id = db.Column(db.String(36), primary_key=True, default=new_id)
+    product_id = db.Column(db.String(36), db.ForeignKey('products.id'), nullable=False, index=True)
+    content_type = db.Column(db.String(40), nullable=False)
+    data = db.deferred(db.Column(db.LargeBinary().with_variant(LONGBLOB(), 'mysql'), nullable=False))
+    created_at = db.Column(db.DateTime, nullable=False, default=now)

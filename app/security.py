@@ -60,6 +60,9 @@ def load_user():
         session['space_version'] = g.owner.access_version
     session.permanent = True
     if request.path.startswith('/api/') and request.method not in ('GET', 'HEAD', 'OPTIONS'):
+        expected_space = request.headers.get('X-Everhere-Space')
+        if expected_space and expected_space != g.owner.id:
+            raise APIError('当前档案已变化，请重新登录并确认后继续。', 409, 'space_changed')
         token = request.headers.get('X-CSRF-Token', '')
         if not session.get('csrf') or not secrets.compare_digest(token, session['csrf']):
             raise APIError('页面验证已过期，请刷新后重试。', 403, 'csrf_error')
@@ -98,3 +101,10 @@ def body():
     if not isinstance(data, dict):
         raise APIError('请求内容必须是 JSON 对象。')
     return data
+
+
+def page_number():
+    raw = request.args.get('page', '1')
+    if not raw.isascii() or not raw.isdigit() or len(raw) > 6 or int(raw) < 1:
+        raise APIError('页码无效。', code='page')
+    return int(raw)

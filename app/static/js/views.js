@@ -7,7 +7,7 @@ export const empty = (title,message,action='new',label=t('写下第一段故事'
 export function card(record) {
   const photos=(record.photoUris||[]).filter(localPhoto).slice(0,3);
   return `<button class="record-card" data-record="${esc(record.id)}">
-    ${photos.length?`<div class="record-photos">${photos.map(uri=>h`<img loading="lazy" src="${esc(uri)}" alt="记录中的照片">`).join('')}</div>`:''}
+    ${photos.length?`<div class="record-photos">${photos.map(uri=>h`<img loading="lazy" src="${esc(uri)}/thumbnail" alt="记录中的照片">`).join('')}</div>`:''}
     <div class="record-title-row"><h3>${esc(record.title||t('一段未命名的时光'))}</h3><time>${esc(dateLabel(record.eventDate,{year:undefined}))}</time></div>
     <div class="record-top"><span class="record-state state-${esc(record.recordState)}">${stateLabels[record.recordState]}</span></div>
     <div class="record-place">${icon('pin')}${esc(record.placeName||t('地点待补充'))}</div>
@@ -18,16 +18,15 @@ export function card(record) {
 
 /* 首页直接参照原端 Index.ets：日落头图、时间弧线、三项概览和轻量入口。 */
 export function home(records,state) {
-  const ongoing=records.filter(record=>record.recordState==='ongoing');
-  const plans=records.filter(record=>record.recordState==='planned'&&!['completed','cancelled'].includes(record.completionState))
-    .sort((a,b)=>(a.eventDate||'9999').localeCompare(b.eventDate||'9999'));
-  const recent=[...records].sort((a,b)=>{const left=BigInt(a.androidDocument?.updatedAt||String(Date.parse(a.updatedAt)||0)),right=BigInt(b.androidDocument?.updatedAt||String(Date.parse(b.updatedAt)||0));return left>right?-1:left<right?1:0;}).slice(0,3);
-  const shortcuts=[['timeline',t('时间轴'),'icon_timeline_brown.svg'],['calendar',t('日历'),'icon_calendar_brown.svg'],['places',t('地点'),'icon_globe_brown.svg'],['all',t('全部记录'),'icon_threads_brown.svg'],['entities',t('人物'),'icon_person_brown.svg']];
+  const album=state.homeAlbum;
+  const ongoing=album?.ongoingRecords||[],plans=album?.plans||[],recent=records;
+  const shortcuts=[['timeline',t('时间轴'),'icon_timeline_brown.svg'],['calendar',t('日历'),'icon_calendar_brown.svg'],['places',t('地点'),'icon_globe_brown.svg'],['connections',t('人生脉络'),'icon_threads_brown.svg'],['entities',t('人物'),'icon_person_brown.svg']];
+  const latestDraft=state.drafts[0];
   return h`<div class="native-home">
     <section class="life-hero" aria-label="我的人生概览">
       <div class="life-hero-top"><p>过去，现在和未来，<br class="hero-mobile-break">都是我的人生</p><button data-view="mine" class="hero-account">账户 ${icon('chevron')}</button></div>
       <div class="life-arc"><img src="/static/images/mobile/home_timeline_arc.svg" alt="连接过去、现在和未来的时间弧线"><div><button data-home-state="occurred">过去</button><button data-home-state="ongoing">现在</button><button data-home-state="planned">未来</button></div></div>
-      <div class="life-overview"><button data-home-all="true"><b id="stat-total">${records.length}</b><span>人生记录</span></button><button data-home-state="ongoing"><b>${ongoing.length}</b><span>进行中</span></button><button data-home-state="planned"><b>${plans.length}</b><span>未来计划</span></button></div>
+      <div class="life-overview"><button data-home-all="true"><b id="stat-total">${album?.total??'—'}</b><span>人生记录</span></button><button data-home-state="ongoing"><b>${album?.ongoing??'—'}</b><span>进行中</span></button><button data-home-state="planned"><b>${album?.planned??'—'}</b><span>未来计划</span></button></div>
     </section>
     <div class="home-body">
       <div class="home-main-column">
@@ -37,6 +36,16 @@ export function home(records,state) {
         <section class="home-recent"><header class="home-section-heading"><h2>最近编辑</h2><button class="text-button" data-view="all">查看全部 ${icon('chevron')}</button></header><div class="home-recent-records">${recent.length?recent.map(card).join(''):empty(t('你的人生还没有被写下来'),t('先留下第一段记忆吧。'),'new',t('记录一段人生'),'book')}</div></section>
       </div>
       <aside class="home-side-column">
+        <section class="settings-card">
+          <h2>${state.member?t('账户空间'):t('访客空间')}</h2>
+          <p>${state.member?t('当前记录保存在你的账户空间。'):t('当前记录保存在此网站的访客空间。可在注册时选择归入新账户。')}</p>
+          <div class="section-toolbar">
+            ${latestDraft?h`<button class="button small" data-resume-draft="${esc(latestDraft.id)}">继续最近草稿</button>`:''}
+            ${state.summary?h`<a class="button small" href="/memoirs">${esc(t('待处理回忆录 {count}',{count:state.summary.memoirs}))}</a>
+              <a class="button small" href="/orders">${esc(t('待处理订单 {count}',{count:state.summary.orders}))}</a>`:''}
+            ${state.member?'':h('<a class="button small" href="/account">登录 / 注册</a>')}
+          </div>
+        </section>
         <section class="year-memory-card"><div><span>回看一段时光</span><h2>${esc(t('{year} 年的人生记忆',{year:state.homeYear}))}</h2></div><div class="year-controls"><button data-home-year="-1" aria-label="上一年">‹</button><span>${state.homeYear}</span><button data-home-year="1" aria-label="下一年">›</button></div><button class="text-button" data-action="year-places">${icon('globe')}查看这一年的地点 ${icon('chevron')}</button></section>
         <section class="home-plan-card"><header class="home-section-heading"><h2>未来计划</h2><button data-view="upcoming" class="text-button">全部 ${icon('chevron')}</button></header>${plans.length?plans.slice(0,2).map(record=>h`<button class="native-plan" data-record="${esc(record.id)}"><div><b>${esc(record.title||t('一份未来计划'))}</b><small>${esc(dateLabel(record.eventDate))}${record.placeName?` · ${esc(record.placeName)}`:''}</small></div><span class="record-state state-planned">计划中</span></button>`).join(''):h('<p class="home-empty-note">还没有未来计划，给未来留一点期待。</p><button class="text-button" data-action="new-plan">记下一份计划 +</button>')}</section>
         ${ongoing.length?h`<section class="home-ongoing-card"><header class="home-section-heading"><h2>正在经历</h2>${icon('thread')}</header>${ongoing.slice(0,2).map(record=>`<button class="native-plan" data-record="${esc(record.id)}"><div><b>${esc(record.title||t('一段正在经历的生活'))}</b><small>${esc(record.content.slice(0,55)||t('慢慢来，每一次尝试都有意义。'))}</small></div>${icon('chevron')}</button>`).join('')}</section>`:''}
@@ -93,8 +102,26 @@ export function places(records,state) {
     if(!groups.has(key))groups.set(key,[]);
     groups.get(key).push(record);
   }
-  if(!groups.size)return empty(t('还没有地点记录'),t('为记录填写地点名称，就能在这里回看。'),'new',t('记录一个地点'),'pin');
-  return h`<p class="draft-notice">按地点回看同一份人生记录，无需填写坐标。</p><div class="place-list">${[...groups].map(([name,items])=>h`<section class="settings-card"><h2>${esc(name)}</h2><small>${items.length} 条记录</small>${items.map(card).join('')}</section>`).join('')}</div>`;
+  const earth=h`<section class="earth-panel" data-earth-panel>
+    <div><h2>3D 地球</h2><p>独立地球模型，可拖动查看陆地轮廓。</p></div>
+    <div class="section-toolbar">
+      <button class="button small" data-action="earth-open">打开 3D</button>
+      <button class="button small" data-action="earth-play" aria-pressed="false" hidden>自动旋转</button>
+      <button class="button small" data-action="place-list">查看地点列表</button>
+    </div>
+    <p data-earth-status role="status"></p>
+    <canvas tabindex="0" aria-label="可用方向键旋转的 3D 地球" hidden></canvas>
+  </section>`;
+  let list='';
+  if(groups.size){
+    list=h`<div class="place-list">${[...groups].map(([name,items])=>h`<section class="settings-card"><h2>${esc(name)}</h2>
+      <small>${items.length} 条记录${items.every(item=>item.latitude==null)?' · '+t('待定位'):''}</small>${items.map(card).join('')}</section>`).join('')}</div>`;
+  }else if(!state.recordsUnavailable){
+    list=state.q||Object.keys(state.filters).length
+      ?empty(t('没有匹配的记录'),t('可以清除筛选，或记录一段新经历。'),'clear-filters',t('清除筛选'),'pin')
+      :empty(t('还没有地点记录'),t('为记录填写地点名称，就能在这里回看。'),'new',t('记录一个地点'),'pin');
+  }
+  return earth+h`<section id="place-list"><h2>地点列表</h2>${list}</section>`;
 }
 
 export function nodes(kind,state) {

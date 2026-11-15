@@ -8,10 +8,11 @@ from sqlalchemy import select
 
 from ..extensions import db
 from ..models import Photo
-from ..models_workflow import Member, Product, ProductVariant, ShopOrder, ShopOrderItem, Memoir, MemoirRevision
+from ..models_workflow import Member, Product, ProductGalleryImage, ProductVariant, ShopOrder, ShopOrderItem, Memoir, MemoirRevision
 from ..security import APIError, body, member_required, admin_required
 from ..services.records import text
 from ..services.product_images import prepare_cover, MAX_COVER_BYTES
+from ..services.orders import order_data, order_page
 
 bp = Blueprint('shop', __name__, url_prefix='/api/v1')
 KINDS = {'medal', 'gift', 'memoir_digital', 'memoir_paper'}
@@ -26,15 +27,36 @@ def product_data(product, staff=False):
     query = select(ProductVariant).where(ProductVariant.product_id == product.id).order_by(ProductVariant.id)
     if not staff:
         query = query.where(ProductVariant.active.is_(True))
+    gallery = db.session.scalars(select(ProductGalleryImage.id).where(ProductGalleryImage.product_id == product.id)
+                               .order_by(ProductGalleryImage.created_at, ProductGalleryImage.id))
     return {'id': product.id, 'name': product.name, 'description': product.description, 'active': product.active, 'version': product.version,
             'imageUrl': f'/api/v1/shop/products/{product.id}/image?v={product.version}' if product.image_type else None,
+            'gallery': [{'id': image_id, 'url': f'/api/v1/shop/products/{product.id}/gallery/{image_id}'} for image_id in gallery],
             'variants': [variant_data(v) for v in db.session.scalars(query)]}
 
 
 @bp.get('/shop/products')
 def catalogue():
-    products = db.session.scalars(select(Product).where(Product.active.is_(True)).order_by(Product.name))
+    query = select(Product).where(Product.active.is_(True))
+    search = request.args.get('q', '').strip()[:120]
+    if search:
+        query = query.where(Product.name.contains(search, autoescape=True) | Product.description.contains(search, autoescape=True))
+    kind = request.args.get('kind', '')
+    if kind:
+        if kind not in KINDS:
+            raise APIError('商品类型无效。', code='kind')
+        query = query.where(select(ProductVariant.id).where(ProductVariant.product_id == Product.id,
+                            ProductVariant.kind == kind, ProductVariant.active.is_(True)).exists())
+    products = db.session.scalars(query.order_by(Product.name, Product.id))
     return {'data': {'products': [product_data(p) for p in products]}}
+
+
+@bp.get('/shop/products/<product_id>')
+def product_detail(product_id):
+    product = db.session.get(Product, product_id)
+    if not product or not product.active:
+        raise APIError('商品不存在。', 404, 'not_found')
+    return {'data': product_data(product)}
 
 
 @bp.get('/admin/products')
@@ -159,17 +181,57 @@ def remove_product_image(product_id):
     return {'data': product_data(product, True)}
 
 
-def order_data(order):
-    items = db.session.scalars(select(ShopOrderItem).where(ShopOrderItem.order_id == order.id))
-    return {'id': order.id, 'state': order.state, 'totalCents': order.total_cents, 'createdAt': order.created_at.isoformat() + 'Z',
-            'paymentAvailable': False, 'items': [{'id': i.id, 'quantity': i.quantity, 'unitPriceCents': i.unit_price_cents, 'snapshot': i.snapshot} for i in items]}
+@bp.get('/shop/products/<product_id>/gallery/<image_id>')
+def gallery_image(product_id, image_id):
+    product, image = db.session.get(Product, product_id), db.session.get(ProductGalleryImage, image_id)
+    if not product or not image or image.product_id != product_id or (not product.active and not (g.member and g.member.role == 'admin')):
+        raise APIError('商品图片不存在。', 404, 'not_found')
+    return send_file(BytesIO(image.data), mimetype=image.content_type, max_age=0)
+
+
+def gallery_product(product_id, version):
+    product = db.session.scalar(select(Product).where(Product.id == product_id).with_for_update())
+    if not product:
+        raise APIError('商品不存在。', 404, 'not_found')
+    if version != str(product.version):
+        raise APIError('商品已更新，请刷新后编辑。', 409, 'version_conflict')
+    return product
+
+
+@bp.post('/admin/products/<product_id>/gallery')
+@admin_required
+def add_gallery_image(product_id):
+    product = gallery_product(product_id, request.form.get('version'))
+    image_ids = list(db.session.scalars(select(ProductGalleryImage.id).where(ProductGalleryImage.product_id == product_id)))
+    if len(image_ids) >= 5:
+        raise APIError('商品图库最多保存 5 张图片。', code='product_image')
+    file = request.files.get('image')
+    if not file:
+        raise APIError('请选择商品配图。', code='product_image')
+    raw, content_type = prepare_cover(file.read(MAX_COVER_BYTES + 1))
+    db.session.add(ProductGalleryImage(product_id=product_id, content_type=content_type, data=raw))
+    product.version += 1
+    db.session.commit()
+    return {'data': product_data(product, True)}, 201
+
+
+@bp.delete('/admin/products/<product_id>/gallery/<image_id>')
+@admin_required
+def delete_gallery_image(product_id, image_id):
+    product = gallery_product(product_id, str(body().get('version')))
+    image = db.session.get(ProductGalleryImage, image_id)
+    if not image or image.product_id != product_id:
+        raise APIError('商品图片不存在。', 404, 'not_found')
+    db.session.delete(image)
+    product.version += 1
+    db.session.commit()
+    return {'data': product_data(product, True)}
 
 
 @bp.get('/shop/orders')
 @member_required
 def orders():
-    items = db.session.scalars(select(ShopOrder).where(ShopOrder.buyer_id == g.member.id).order_by(ShopOrder.created_at.desc()))
-    return {'data': {'orders': [order_data(o) for o in items]}}
+    return {'data': order_page(select(ShopOrder).where(ShopOrder.buyer_id == g.member.id))}
 
 
 @bp.get('/shop/orders/<order_id>')
@@ -194,7 +256,7 @@ def create_order():
     digest = sha256(json.dumps(rows, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
     # 账户级锁保证网络重试只创建一份订单，数据库唯一约束进一步兜底。
     db.session.execute(select(Member).where(Member.id == g.member.id).with_for_update()).scalar_one()
-    previous = db.session.scalar(select(ShopOrder).where(ShopOrder.buyer_id == g.member.id, ShopOrder.request_key == key))
+    previous = db.session.scalar(select(ShopOrder).where(ShopOrder.buyer_id == g.member.id, ShopOrder.request_key == key).with_for_update())
     if previous:
         if previous.request_hash != digest:
             raise APIError('请求编号已用于其他内容，请重新确认。', 409, 'idempotency_conflict')

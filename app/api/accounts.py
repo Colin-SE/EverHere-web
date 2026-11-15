@@ -8,7 +8,8 @@ from sqlalchemy import select
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from ..extensions import db, limiter
-from ..models import LocalSpace
+from ..models import LocalSpace, now
+from ..models_identity import DeviceSession
 from ..models_workflow import Member, SpaceOwnership
 from ..security import APIError, body, csrf_token, member_required
 from ..services import identity
@@ -51,7 +52,7 @@ def establish(member, space_id, auth_epoch):
     space = db.session.get(LocalSpace, space_id)
     session['space_id'], session['space_version'] = space.id, space.access_version
     session.permanent = True
-    return {'data': {'member': account_data(member), 'csrfToken': csrf_token()}}
+    return {'data': {'member': account_data(member), 'csrfToken': csrf_token(), 'spaceId': space.id}}
 
 
 @bp.post('/register')
@@ -117,6 +118,33 @@ def login():
 @bp.get('/capabilities')
 def capabilities():
     return {'data': {'sharedIdentity': bool(current_app.config.get('SHARED_IDENTITY_ENABLED')), 'region': 'cn'}}
+
+
+@bp.get('/devices')
+@member_required
+def devices():
+    identity.enabled()
+    rows = db.session.scalars(select(DeviceSession).where(
+        DeviceSession.member_id == g.member.id, DeviceSession.revoked.is_(False),
+        DeviceSession.refresh_expires_at > now(),
+    ).order_by(DeviceSession.created_at.desc(), DeviceSession.id))
+    return {'data': {'devices': [{'id': row.id, 'name': row.device_name,
+                                 'createdAt': identity.iso(row.created_at),
+                                 'expiresAt': identity.iso(row.refresh_expires_at)} for row in rows]}}
+
+
+@bp.delete('/devices/<device_id>')
+@member_required
+def revoke_device(device_id):
+    identity.enabled()
+    device = db.session.scalar(select(DeviceSession).where(
+        DeviceSession.member_id == g.member.id, DeviceSession.id == device_id,
+    ).with_for_update())
+    if not device:
+        raise APIError('设备会话不存在。', 404, 'not_found')
+    device.revoked, device.rotation_receipt = True, None
+    db.session.commit()
+    return {'data': {'revoked': True}}
 
 
 @bp.post('/code')

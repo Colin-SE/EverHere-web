@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from ..extensions import db
 from ..models import LifeRecord, Photo, new_id, now
-from ..models_workflow import Memoir, MemoirRevision, MemoirAsset
+from ..models_workflow import Memoir, MemoirRevision, MemoirAsset, MemoirJob
 from ..security import APIError
 from ..i18n import translate
 from .records import record_data, text
@@ -125,6 +125,9 @@ def memoir_data(memoir, detail=False, staff=False):
             value['title'], value['theme'] = revision.snapshot['title'], revision.snapshot['theme']
         value.update(revisionId=revision.id, reviewerId=revision.reviewer_id, reason=revision.reason, renderError=translate(revision.render_error),
                      layout=revision.layout, previewUrl=f'/api/v1/memoirs/{memoir.id}/preview.pdf' if memoir.state == 'ready' else None)
+        job = db.session.get(MemoirJob, revision.id)
+        if job:
+            value['generation'] = {'state': job.state, 'updatedAt': job.updated_at.isoformat() + 'Z'}
     if detail:
         if not staff:
             value['chapters'] = memoir.draft
@@ -132,5 +135,7 @@ def memoir_data(memoir, detail=False, staff=False):
         query = select(MemoirRevision).where(MemoirRevision.memoir_id == memoir.id)
         if staff:
             query = query.where(MemoirRevision.reviewer_id == g.member.id)
-        value['history'] = [{'number': r.number, 'state': r.state, 'reason': r.reason} for r in db.session.scalars(query.order_by(MemoirRevision.number))]
+        value['history'] = [{'number': r.number, 'state': r.state, 'reason': r.reason,
+                             'at': (r.reviewed_at or r.submitted_at).isoformat() + 'Z'}
+                            for r in db.session.scalars(query.order_by(MemoirRevision.number))]
     return value

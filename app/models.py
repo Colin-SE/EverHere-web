@@ -126,5 +126,6 @@ class Photo(db.Model):
     source_id = db.Column(db.String(100), nullable=True)
     __table_args__ = (db.UniqueConstraint("user_id", "source_id"),)
     content_type = db.Column(db.String(30), nullable=False)
-    data = db.Column(db.LargeBinary().with_variant(LONGBLOB(), "mysql"), nullable=False)
+    data = db.deferred(db.Column(db.LargeBinary().with_variant(LONGBLOB(), "mysql"), nullable=False))
+    thumbnail_data = db.deferred(db.Column(db.LargeBinary(), nullable=True))
     created_at = db.Column(db.DateTime, nullable=False, default=now)

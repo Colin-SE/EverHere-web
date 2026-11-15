@@ -2,6 +2,7 @@
 import re
 from flask import g
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from ..extensions import db
 from ..models import LifeRecord
@@ -39,7 +40,7 @@ def window(value):
     return left, parts(end) if precision == 'range' else left
 
 
-def select_records(args):
+def select_records(args, page=None, size=30):
     from .records import record_data, STATES
     target = args.get('target', 'all')
     if target not in ('all', 'timeline', 'spatial'):
@@ -55,6 +56,8 @@ def select_records(args):
         raise APIError('日期精度筛选无效。')
     if progress and progress not in ('all', 'unfinished', 'planned', 'started', 'completed', 'cancelled'):
         raise APIError('进展筛选无效。')
+    if state:
+        query = query.where(LifeRecord.record_state == state)
     bounds = []
     for key in ('from', 'to'):
         raw = args.get(key)
@@ -72,14 +75,23 @@ def select_records(args):
         if not node:
             raise APIError('关联对象不存在。', 404)
     selected = []
-    for row in db.session.scalars(query):
-        value = record_data(row)
+    needs_links = bool(people or args.get('node'))
+    if page is not None and not needs_links:
+        # 先读筛选与排序所需字段，后按稳定的日期/ID 顺序加载当页正文和关系。
+        base = [LifeRecord.id, LifeRecord.source_id, LifeRecord.payload]
+        if words:
+            base += [LifeRecord.title, LifeRecord.content]
+        candidates = db.session.execute(query.with_only_columns(*base)).yield_per(100)
+    else:
+        candidates = db.session.scalars(query.options(selectinload(LifeRecord.links))).yield_per(100)
+    for row in candidates:
+        value = (dict(row.payload) if page is not None and not needs_links else record_data(row))
         if target == 'timeline' and not value.get('showInTimeline', True):
             continue
         if target == 'spatial' and not ((value.get('placeName') or '').strip() or
                 (value.get('showOnGlobe', False) and value.get('latitude') is not None and value.get('longitude') is not None)):
             continue
-        if state and value['recordState'] != state or precision and value['datePrecision'] != precision:
+        if precision and value['datePrecision'] != precision:
             continue
         completion = value['completionState']
         if progress == 'unfinished' and completion not in ('planned', 'started') or progress and progress not in ('all', 'unfinished', completion):
@@ -87,16 +99,25 @@ def select_records(args):
         event = window(record_date(value))
         if lower and (event is None or event[1] < lower) or upper and (event is None or event[0] > upper):
             continue
-        fields = [value['title'], value['content'], value.get('placeName') or '', value.get('mood') or '', *value.get('tags', [])]
-        if not all(any(word in field.casefold() for field in fields) for word in words):
-            continue
+        if words:
+            fields = [row.title, row.content, value.get('placeName') or '', value.get('mood') or '', *value.get('tags', [])]
+            if not all(any(word in field.casefold() for field in fields) for word in words):
+                continue
         if args.get('tag') and args['tag'] not in value.get('tags', []):
             continue
         if not set(people).issubset(value.get('linkedEntityIds', [])):
             continue
         if args.get('node') and args['node'] not in value.get({'entities':'linkedEntityIds','threads':'linkedThreadIds','chapters':'linkedChapterIds'}.get(args.get('kind','entities'), 'linkedEntityIds'), []):
             continue
-        selected.append(value)
-    selected.sort(key=lambda v: v['id'])
-    selected.sort(key=lambda v: window(record_date(v))[0] if window(record_date(v)) else (-1000000000,1,1), reverse=True)
-    return selected
+        selected.append((event[0] if event else (-1000000000, 1, 1), row.source_id,
+                         row.id if page is not None else value))
+    selected.sort(key=lambda item: item[1])
+    selected.sort(key=lambda item: item[0], reverse=True)
+    if page is None:
+        return [item[2] for item in selected]
+    start = (page - 1) * size
+    ids = [item[2] for item in selected[start:start + size]]
+    rows = {row.id: row for row in db.session.scalars(select(LifeRecord).where(
+        LifeRecord.user_id == g.owner.id, LifeRecord.id.in_(ids), LifeRecord.is_deleted.is_(trash),
+    ).options(selectinload(LifeRecord.links)))}
+    return [record_data(rows[id]) for id in ids if id in rows], len(selected)

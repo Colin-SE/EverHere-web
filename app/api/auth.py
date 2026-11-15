@@ -7,4 +7,5 @@ bp = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
 
 @bp.get('/session')
 def current():
-    return {'data': {'user': g.user, 'member': g.user, 'csrfToken': csrf_token()}}
+    return {'data': {'user': g.user, 'member': g.user, 'csrfToken': csrf_token(),
+                     'spaceId': g.owner.id, 'emailVerified': bool(g.member and g.member.email_verified_at)}}

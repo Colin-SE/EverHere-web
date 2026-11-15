@@ -97,6 +97,13 @@ def detail(draft_id):
     return {'data': serialize(draft)}
 
 
+@bp.get('/<draft_id>/receipt')
+@local_required
+def receipt(draft_id):
+    draft = owned(draft_id)
+    return {'data': {'committed': draft.committed_at is not None, 'id': draft.target_id, 'kind': draft.kind}}
+
+
 def compare(draft, value):
     if draft.committed_at:
         raise APIError('草稿已提交，请重新打开正式资料。', 409, 'draft_committed')

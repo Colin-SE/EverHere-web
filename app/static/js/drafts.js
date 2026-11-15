@@ -22,7 +22,23 @@ export class DraftSession {
     }).catch(error=>{if(this.current===draft)this.status(t('草稿未保存：')+error.message);throw error;}).finally(()=>{this.pending--;});
     this.queue=task;return task;
   }
-  async commit(extra={}){await this.store();const result=await api('/drafts/'+encodeURIComponent(this.current.id)+'/commit',{method:'POST',json:{version:this.current.version,...extra}});this.current=null;return result;}
+  async commit(extra={}){
+    const path='/drafts/'+encodeURIComponent(this.current.id);
+    if(this.current.commitPending){
+      const receipt=await api(path+'/receipt');
+      if(receipt.committed){this.current=null;return receipt;}
+      this.current.commitPending=false;
+    }
+    await this.store();
+    this.current.commitPending=true;
+    try{
+      const result=await api(path+'/commit',{method:'POST',json:{version:this.current.version,...extra}});
+      this.current=null;return result;
+    }catch(error){
+      if(error.status&&error.status<500)this.current.commitPending=false;
+      throw error;
+    }
+  }
   async discard(){clearTimeout(this.timer);await this.queue.catch(()=>{});if(this.current)await api('/drafts/'+encodeURIComponent(this.current.id),{method:'DELETE',json:{version:this.current.version}});this.current=null;}
   detach(){clearTimeout(this.timer);this.current=null;}
 }

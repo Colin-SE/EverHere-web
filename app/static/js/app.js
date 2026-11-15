@@ -1,15 +1,22 @@
 import {t,h,m,locale} from './i18n.js';
-import {api,getSession} from './api.js';
+import {api,getSession,uploadPhotos} from './api.js';
 import {icon,hydrateIcons,esc,today,dateLabel,localPhoto,stateLabels,moodLabel,toast} from './ui.js';
 import * as views from './views.js';
 import {DraftSession} from './drafts.js';
 import {openGallery} from './gallery.js';
+import {createConnections} from './connections.js';
 
 /* 统一页面状态：筛选与记录在视图切换时复用，不写入浏览器持久缓存。 */
 const now=new Date();
 const state={view:'home',homeYear:now.getFullYear(),records:[],allRecords:[],graph:{entities:[],},filters:{},q:'',user:null,calendarYear:now.getFullYear(),calendarMonth:now.getMonth(),selectedDate:today(),place:null,drafts:[],personId:null,allQuery:{filters:{},q:''},recordQuery:{filters:{},q:''}};
 const titles={about:[t('关于与帮助'),t('账户、资料保存和功能范围。')],all:[t('全部记录'),t('包含关闭时间轴显示的普通记录；筛选与时间轴独立。')],drafts:[t('本机草稿'),t('草稿单独保存，可继续编辑后正式提交。')],trash:[t('回收站'),t('软删除保留原 ID、关系和照片，可随时恢复。')],person:[t('人物与经历'),t('一份人物资料，关联同一份人生记录。')],home:[t('我的生活'),t('过去，现在和未来，都是我的人生。')],timeline:[t('人生记录'),t('按时间，重新遇见那些值得留下的生活。')],calendar:[t('日历回看'),t('翻过日历，再次遇见那些有故事的日子。')],places:[t('地点'),t('走过的地方，留下了属于你的故事。')],upcoming:[t('未来计划'),t('给未来留一些期待，也给自己留一些空白。')],entities:[t('人物'),t('那些人、那些地方，都在你的故事里。')],mine:[t('我的'),t('管理自己的记录、回忆录和订单。')],};
 const content=document.getElementById('view-content');
+titles.connections=[t('人生脉络'),t('从已保存的人物与记录关联继续探索。')];
+const connections=createConnections(content);
+const loading=document.getElementById('album-loading');
+let loadController, selectedConnection, earth, recordPage=1, pageData=null, photoBatch=null;
+let currentView, detailSequence=0;
+const albumViews=new Set(['timeline','all','trash','person','places','upcoming']);
 const recordForm=document.getElementById('record-form');
 const editor=document.getElementById('editor-dialog');
 let editorRecord=null,editorPhotos=[],editorDirty=false,uploading=false,loadSequence=0;
@@ -63,10 +70,12 @@ function writeRoute(replace=false){
   const params=new URLSearchParams({view:state.view});if(state.personId&&state.view==='person')params.set('id',state.personId);
   if(['timeline','calendar','all','places','person','upcoming'].includes(state.view)){for(const [key,value] of Object.entries(state.filters))if(value)params.set(key,value);if(state.q)params.set('q',state.q);}
   if(state.view==='calendar'){params.set('month',`${state.calendarYear}-${String(state.calendarMonth+1).padStart(2,'0')}`);params.set('day',state.selectedDate);}
-  history[replace?'replaceState':'pushState'](null,'','#'+params.toString());
+  if(recordPage>1)params.set('page',recordPage);
+  history[replace?'replaceState':'pushState']({scroll:window.scrollY},'','#'+params.toString());
 }
 function restoreRoute(){
-  const params=new URLSearchParams(location.hash.slice(1));const view=params.get('view');state.view=Object.hasOwn(titles,view)?view:'home';
+  const params=new URLSearchParams(location.hash.slice(1));const view=params.get('view')||document.body.dataset.initialView;state.view=Object.hasOwn(titles,view)?view:'home';
+  recordPage=Math.max(1,Number(params.get('page'))||1);
   state.personId=params.get('id');state.filters={};for(const key of ['state','progress','precision','from','to','tag','node','kind','people'])if(params.get(key))state.filters[key]=params.get(key);
   state.q=params.get('q')||'';const month=/^(\d{4})-(\d{2})$/.exec(params.get('month')||'');if(month&&Number(month[2])>=1&&Number(month[2])<=12){state.calendarYear=Number(month[1]);state.calendarMonth=Number(month[2])-1;}if(/^\d{4}-\d{2}-\d{2}$/.test(params.get('day')||''))state.selectedDate=params.get('day');
   syncFilterForm();
@@ -74,29 +83,76 @@ function restoreRoute(){
 function syncFilterForm(){document.getElementById('search').value=state.q;for(const element of document.getElementById('filters').elements)if(element.name&&element.name!=='people')element.value=state.filters[element.name]||'';}
 async function navigate(view){
   if(!Object.hasOwn(titles,view))return;
+  detailSequence++;
   if(state.view==='all'&&view!=='all'){state.allQuery={filters:{...state.filters},q:state.q};state.filters={...state.recordQuery.filters};state.q=state.recordQuery.q;}
   if(view==='all'&&state.view!=='all'){state.recordQuery={filters:{...state.filters},q:state.q};state.filters={...state.allQuery.filters};state.q=state.allQuery.q;}
-  state.view=view;state.place=null;syncFilterForm();updateNav();writeRoute();closeMenu();window.scrollTo({top:0,behavior:'instant'});await load();
+  history.replaceState({scroll:window.scrollY},'');
+  recordPage=1;state.view=view;state.place=null;syncFilterForm();updateNav();writeRoute();closeMenu();window.scrollTo({top:0,behavior:'instant'});await load();
 }
-window.addEventListener('popstate',async()=>{if(editor.open){await closeEditor();if(editor.open){writeRoute(true);return;}}if(nodeDialog.open){await closeNode();if(nodeDialog.open){writeRoute(true);return;}}restoreRoute();updateNav();await load();});
+window.addEventListener('popstate',async event=>{if(editor.open){await closeEditor();if(editor.open){writeRoute(true);return;}}if(nodeDialog.open){await closeNode();if(nodeDialog.open){writeRoute(true);return;}}restoreRoute();updateNav();await load();window.scrollTo(0,event.state?.scroll||0);});
 async function load(){
   const sequence=++loadSequence;
-  content.innerHTML=h('<div class="loading-state">正在翻开这一页生活…</div>');
+  const previousView=currentView;
+  currentView=state.view;
+  connections.close();
+  if(previousView!==state.view)content.replaceChildren();
+  loadController?.abort();
+  loading.hidden=true;
+  if(state.view==='connections'){
+    earth?.dispose();earth=null;
+    content.removeAttribute('aria-busy');
+    connections.open(selectedConnection);selectedConnection=null;
+    return;
+  }
+  const controller=new AbortController();loadController=controller;
+  content.setAttribute('aria-busy','true');
+  const options={signal:controller.signal};
+  const updateLoading=(message,slow=false)=>{
+    loading.innerHTML=h`${esc(message)}${slow?h('<button class="button small" data-action="retry">重新加载</button>'):''}`;
+    loading.hidden=false;
+  };
+  const initial=setTimeout(()=>updateLoading(t('正在翻开这一页生活…')),300);
+  const waiting=setTimeout(()=>updateLoading(t('正在读取你的记录…')),3000);
+  const slow=setTimeout(()=>updateLoading(t('加载较慢，可以重新加载。'),true),10000);
   const useFilters=['timeline','calendar','places','upcoming','all','person'].includes(state.view);
   const target=['timeline','calendar'].includes(state.view)?'timeline':state.view==='places'?'spatial':'all';
   const params=new URLSearchParams({target,...(useFilters?state.filters:{}),...(useFilters&&state.q?{q:state.q}:{}),...(state.view==='trash'?{trash:'true'}:{}),...(state.view==='person'?{node:state.personId||'missing',kind:'entities'}:{})});
+  if(albumViews.has(state.view))params.set('page',recordPage);
   try{
-    const [data,graph,drafts,all]=await Promise.all([api(`/records?${params}`),api('/graph'),api('/drafts'),api('/records?target=all')]);
+    const primary=api(state.view==='home'?'/home/album':`/records?${params}`,options);
+    const [data,graph,drafts,summary]=await Promise.allSettled([
+      primary,api('/graph',options),api('/drafts',options),
+      state.view==='home'&&state.member?api('/home/summary',options):Promise.resolve(null),
+    ]);
     if(sequence!==loadSequence)return;
-    state.records=data.records;state.graph=graph;state.drafts=drafts.drafts;state.allRecords=all.records;
+    state.readErrors=[];state.recordsUnavailable=data.status==='rejected';
+    if(data.status==='fulfilled'){
+      state.records=data.value.records;pageData=data.value;
+      if(state.view==='home')state.homeAlbum=data.value;
+    }else if(state.view!=='home')throw data.reason;
+    else{state.records=[];pageData=null;state.homeAlbum=null;state.readErrors.push(t('记录暂时无法读取。'));}
+    if(graph.status==='fulfilled')state.graph=graph.value;
+    else state.readErrors.push(t('人物资料暂时无法读取。'));
+    if(drafts.status==='fulfilled')state.drafts=drafts.value.drafts;
+    else state.readErrors.push(t('草稿暂时无法读取。'));
+    state.summary=summary.status==='fulfilled'?summary.value:null;
+    if(summary.status==='rejected')state.readErrors.push(t('回忆录和订单摘要暂时无法读取。'));
+    state.allRecords=state.records;
     render();
   }catch(error){
     if(sequence!==loadSequence)return;
-    if(error.status===401){location.assign('/login');return;}
-    content.innerHTML=h`<div class="error-state"><p>${esc(error.message)}</p><button class="button small" data-action="retry">重新加载</button></div>`;
+    updateLoading(error.message,true);
+    if(!content.hasChildNodes()&&state.view==='places'){state.records=[];pageData=null;render();}
+    return;
+  }finally{
+    [initial,waiting,slow].forEach(clearTimeout);
+    if(sequence===loadSequence)content.removeAttribute('aria-busy');
   }
+  loading.hidden=true;
 }
 function render(){
+  if(state.view==='connections')return;
+  earth?.dispose();earth=null;
   const active=document.getElementById('active-filter');
   const node=state.filters.node?state.graph[state.filters.kind]?.find(item=>item.id===state.filters.node):null;
   active.hidden=!['timeline','calendar','places','upcoming','all'].includes(state.view)||!(node||state.place);
@@ -104,7 +160,19 @@ function render(){
   const records=state.place?state.records.filter(record=>record.placeName===state.place):state.records;
   const people=document.getElementById('people-filter');if(people)people.innerHTML=state.graph.entities.filter(node=>node.type==='person').map(node=>`<option value="${esc(node.id)}" ${(state.filters.people||'').split(',').includes(node.id)?'selected':''}>${esc(node.name)}</option>`).join('');
   const renderers={all:()=>views.all(records,state),drafts:()=>views.drafts(state),trash:()=>views.trash(records),person:()=>views.person(records,state),about:()=>views.about(state),home:()=>views.home(records,state),mine:()=>views.mine(state),timeline:()=>views.timeline(records,state),calendar:()=>views.calendar(records,state),places:()=>views.places(records,state),upcoming:()=>views.upcoming(records),entities:()=>views.nodes('entities',state)};
-  content.innerHTML=(renderers[state.view]||renderers.home)();
+  const filtered=Boolean(state.q||Object.values(state.filters).some(Boolean));
+  const blank=!records.length&&filtered&&['all','timeline','places','upcoming','person'].includes(state.view);
+  const errors=(state.readErrors||[]).map(message=>h`<div class="draft-notice" role="status">${esc(message)} <button class="button small" data-action="retry">重新加载</button></div>`).join('');
+  const section=blank&&state.view!=='places'
+    ?views.empty(t('没有匹配的记录'),t('可以清除筛选，或记录一段新经历。'),'clear-filters',t('清除筛选'))
+    :(renderers[state.view]||renderers.home)();
+  const pagination=pageData?.pageSize&&(recordPage>1||pageData.total>pageData.pageSize)
+    ?h`<div class="section-toolbar" aria-label="分页">
+      ${recordPage>1?h`<button class="button small" data-record-page="${recordPage-1}">上一页</button>`:''}
+      <span>${esc(t('第 {page} 页 · 共 {total} 条',{page:recordPage,total:pageData.total}))}</span>
+      ${recordPage*pageData.pageSize<pageData.total?h`<button class="button small" data-record-page="${recordPage+1}">下一页</button>`:''}
+    </div>`:'';
+  content.innerHTML=errors+section+pagination;
 }
 const recordDraft=new DraftSession('record',collectRecord,value=>{document.getElementById('draft-status').textContent=value;});
 function collectRecord(){
@@ -140,7 +208,9 @@ async function openEditor(record=null,planned=false,options={}){
   if(editorOpening)return;editorOpening=true;
   try{
 
-    recordForm.reset();editorRecord=record;progressTouched=false;
+    recordForm.reset();editorRecord=record;progressTouched=false;photoBatch=null;
+    document.getElementById('photo-upload-status').textContent='';
+    document.querySelector('[data-action="retry-photo-batch"]').hidden=true;
     const initial={recordState:planned?'planned':options.recordState||'occurred',completionState:planned?'planned':options.recordState==='ongoing'?'started':'completed',datePrecision:state.view==='calendar'?'day':'unknown',eventDate:state.view==='calendar'?state.selectedDate:'',showInTimeline:true,showOnGlobe:false,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'Asia/Shanghai',placePrecision:'city'};
     let value=record||initial;
     {
@@ -170,8 +240,9 @@ function renderPhotoPreviews(){
 async function saveDraftAndClose(){
   if(uploading||savingRecord)return;savingRecord=true;
   const controls=[...recordForm.querySelectorAll('input,textarea,select,button')],prior=controls.map(element=>element.disabled);controls.forEach(element=>element.disabled=true);
-  try{if(recordDraft.current)await recordDraft.store();else if(editorDirty)throw new Error(t('请重新打开草稿后保存。'));editorDirty=false;recordDraft.detach();editor.close();await load();}
+  try{if(recordDraft.current)await recordDraft.store();else if(editorDirty)throw new Error(t('请重新打开草稿后保存。'));editorDirty=false;recordDraft.detach();editor.close();}
   finally{savingRecord=false;controls.forEach((element,index)=>element.disabled=prior[index]);}
+  await load();
 }
 async function closeEditor(){
   if(uploading||savingRecord){toast(t('正在保存或导入照片，请稍候。'));return;}
@@ -204,26 +275,58 @@ recordForm.addEventListener('submit',async event=>{
   finally{savingRecord=false;controls.forEach((element,index)=>element.disabled=prior[index]);}
 });
 document.getElementById('photo-input').addEventListener('change',async event=>{
+  if(uploading||savingRecord)return;
   const files=[...event.target.files];if(!files.length)return;
   if(editorPhotos.length+files.length>10){toast(t('每条记录最多 10 张照片，已有照片保持不变。'));event.target.value='';return;}
   if(files.some(file=>file.size>50*1024*1024)){toast(t('单张照片不能超过 50 MB，已有输入保持不变。'));event.target.value='';return;}
-  uploading=true;const controls=[...recordForm.querySelectorAll('input,textarea,select,button')],disabled=controls.map(element=>element.disabled);controls.forEach(element=>element.disabled=true);
-  document.getElementById('record-error').textContent=t('正在导入原图…');
-  try{const form=new FormData();files.forEach(file=>form.append('photos',file));const result=await api('/photos/batch',{method:'POST',body:form});editorPhotos.push(...result.photos.map(photo=>photo.uri));editorDirty=true;renderPhotoPreviews();document.getElementById('record-error').textContent='';}
-  catch(error){document.getElementById('record-error').textContent=error.message;}
-  finally{uploading=false;controls.forEach((element,index)=>element.disabled=disabled[index]);event.target.value='';if(recordDraft.current)recordDraft.changed();}
+  photoBatch={files,key:crypto.randomUUID()};
+  event.target.value='';
+  await sendPhotoBatch();
 });
+async function sendPhotoBatch(){
+  if(uploading||savingRecord||!photoBatch)return;
+  const {files,key}=photoBatch,form=new FormData();
+  if(editorPhotos.length+files.length>10)return;
+  uploading=true;
+  const status=document.getElementById('photo-upload-status');
+  const retry=document.querySelector('[data-action="retry-photo-batch"]');
+  const controls=[document.getElementById('photo-input'),document.getElementById('save-record')];
+  controls.forEach(control=>{control.disabled=true;});
+  retry.hidden=true;
+  status.textContent=t('正在导入原图…');
+  form.set('requestKey',key);files.forEach(file=>form.append('photos',file));
+  try{
+    const result=await uploadPhotos('/photos/batch',form,percent=>{
+      status.textContent=percent===100?t('正在校验照片…'):percent===null?t('正在导入原图…'):t('照片传输 {percent}%',{percent});
+    });
+    editorPhotos.push(...result.photos.map(photo=>photo.uri));
+    photoBatch=null;editorDirty=true;renderPhotoPreviews();
+    status.textContent=t('照片已上传。请保存这条记录。');
+    recordDraft.changed();
+  }catch(error){
+    status.textContent=error.message;
+    retry.hidden=false;
+  }finally{
+    uploading=false;controls.forEach(control=>{control.disabled=false;});
+  }
+}
 async function showDetail(id){
+  const sequence=++detailSequence;
   try{
     const record=await api(`/records/${encodeURIComponent(id)}`);
+    if(sequence!==detailSequence)return;
 currentDetail=record;
     const links=[];
     for(const [kind,field] of Object.entries({entities:'linkedEntityIds',threads:'linkedThreadIds',chapters:'linkedChapterIds'})){
-      for(const node of state.graph[kind])if(record[field]?.includes(node.id))links.push(node.name);
+      for(const node of state.graph[kind]||[])if(record[field]?.includes(node.id))links.push(node.name);
     }
     document.getElementById('detail-content').innerHTML=h`<header class="detail-heading"><button class="icon-button close-detail" data-close="detail-dialog" aria-label="关闭详情">${icon('close')}</button><div class="record-top"><span class="record-place">${icon('pin')}${esc(record.placeName||t('生活里的某个角落'))}</span><span class="record-state state-${esc(record.recordState)}">${stateLabels[record.recordState]}</span></div><h2 id="detail-title">${esc(record.title||t('一段未命名的时光'))}</h2><div class="detail-date">${esc(dateLabel(record.eventDate))}${record.eventEndAt?` — ${esc(dateLabel(record.eventEndAt))}`:''} · ${esc(record.mood?moodLabel(record.mood):t('一段属于你的生活'))}</div></header><div class="detail-body"><div class="detail-text">${esc(record.content)}</div><div class="detail-photos">${(record.photoUris||[]).map(uri=>localPhoto(uri)?h`<img src="${esc(uri)}" alt="记忆中的照片" data-detail-photo="${(record.photoUris||[]).indexOf(uri)}">`:h('<div class="photo-unavailable">原端照片仅保留引用，需在编辑时重新上传。</div>')).join('')}</div><div class="record-meta">${(record.tags||[]).map(tag=>`<span class="tag"># ${esc(tag)}</span>`).join('')}</div><div class="detail-relations">${record.linkedEntityIds?.map(id=>{const person=state.graph.entities.find(node=>node.id===id);return person?`<button class="button small" data-person="${esc(id)}">${esc(person.name)}</button>`:'';}).join('')||''}</div></div><footer class="dialog-footer">${h`<button class="button subtle danger" data-action="delete-record">${icon('trash')}删除</button><button class="button primary" data-action="edit-record">${icon('edit')}编辑这段时光</button>`}</footer>`;
     document.getElementById('detail-dialog').showModal();
-  }catch(error){toast(error.message);}
+    const explore=document.createElement('button');
+    explore.type='button';explore.className='button subtle';
+    explore.dataset.recordConnections=record.id;explore.textContent=t('探索相关人物');
+    document.querySelector('#detail-content .detail-relations').append(explore);
+  }catch(error){if(sequence===detailSequence)toast(error.message);}
 }
 const nodeForm=document.getElementById('node-form'),nodeDialog=document.getElementById('node-dialog');
 const personDraft=new DraftSession('person',()=>Object.fromEntries(new FormData(nodeForm)),value=>{document.getElementById('person-draft-status').textContent=value;});
@@ -273,6 +376,37 @@ const actions={
   'add-tag':()=>{const field=recordForm.elements.tags,tag=field.value.trim();if(tag&&!editorTags.includes(tag))editorTags.push(tag);field.value='';renderTags();editorDirty=true;recordDraft.changed();},
   'person-record':()=>openEditor(null,false,{personId:state.personId}),
   new:()=>document.getElementById('creation-dialog').showModal(), 'new-plan':()=>openEditor(null,true), retry:load,
+  'retry-photo-batch':sendPhotoBatch,
+  'place-list':()=>document.getElementById('place-list')?.scrollIntoView({block:'start'}),
+  'clear-filters':async()=>{recordPage=1;replaceRecordFilters({});state.place=null;writeRoute();await load();},
+  'earth-open':async()=>{
+    const section=document.querySelector('[data-earth-panel]');
+    if(!section)return;
+    const indicator=section.querySelector('[data-earth-status]'), canvas=section.querySelector('canvas');
+    const open=section.querySelector('[data-action="earth-open"]');
+    const play=section.querySelector('[data-action="earth-play"]');
+    const failed=()=>{
+      earth?.dispose();earth=null;canvas.hidden=true;play.hidden=true;open.hidden=false;open.disabled=false;
+      open.textContent=t('重试 3D');indicator.textContent=t('3D 地球暂不可用，可以继续查看地点列表。');
+    };
+    open.disabled=true;indicator.textContent=t('正在加载 3D 地球…');
+    try{
+      const {mountEarth}=await import('./earth.js');
+      if(!canvas.isConnected)return;
+      canvas.hidden=false;
+      earth=await mountEarth(canvas,failed);
+      if(!canvas.isConnected||!earth)return;
+      open.hidden=true;play.hidden=false;play.setAttribute('aria-pressed','false');
+      indicator.textContent=t('拖动或使用方向键旋转地球。');
+    }catch{
+      if(canvas.isConnected)failed();
+    }finally{open.disabled=false;}
+  },
+  'earth-play':()=>{
+    const button=document.querySelector('[data-action="earth-play"]');
+    const play=button.getAttribute('aria-pressed')!=='true';earth?.play(play);
+    button.setAttribute('aria-pressed',String(play));button.textContent=t(play?'暂停旋转':'自动旋转');
+  },
   'year-places':async()=>{replaceRecordFilters({from:`${state.homeYear}-01-01`,to:`${state.homeYear}-12-31`});await navigate('places');},
   'calendar-today':()=>{const day=new Date();state.calendarYear=day.getFullYear();state.calendarMonth=day.getMonth();state.selectedDate=today();render();},
   'clear-focus':async()=>{delete state.filters.node;delete state.filters.kind;state.place=null;await load();},
@@ -293,6 +427,11 @@ document.addEventListener('click',async event=>{
     else if(target.dataset.homeState){state.allQuery={filters:{state:target.dataset.homeState},q:''};await navigate('all');}
     else if(target.dataset.homeYear){state.homeYear=Math.min(9998,Math.max(1000,state.homeYear+Number(target.dataset.homeYear)));render();}
     else if(target.dataset.record)await showDetail(target.dataset.record);
+    else if(target.dataset.recordPage){recordPage=Number(target.dataset.recordPage);writeRoute();await load();content.scrollIntoView({block:'start'});}
+    else if(target.dataset.recordConnections){
+      selectedConnection={kind:'record',id:target.dataset.recordConnections};
+      document.getElementById('detail-dialog').close();await navigate('connections');
+    }
     else if(target.dataset.action){if(target.dataset.action.startsWith('node-'))openNode(target.dataset.action.slice(5));else await actions[target.dataset.action]?.();}
     else if(target.dataset.newNode)await openNode(target.dataset.newNode);
     else if(target.dataset.editNode)await openNode(target.dataset.kind,state.graph[target.dataset.kind].find(node=>node.id===target.dataset.editNode));
@@ -311,18 +450,19 @@ document.addEventListener('click',async event=>{
     else if(target.dataset.restore){await api('/records/'+encodeURIComponent(target.dataset.restore)+'/restore',{method:'POST',json:{version:Number(target.dataset.version)}});toast(t('已按原 ID 恢复记录、关系与照片。'));await load();}
   }catch(error){toast(error.message);}
 });
+document.getElementById('detail-dialog').addEventListener('close',()=>detailSequence++);
 document.addEventListener('keydown',event=>{if(event.target.matches('[data-record][role="button"]')&&['Enter',' '].includes(event.key)){event.preventDefault();event.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
 document.addEventListener('change',event=>{if(event.target.id==='calendar-jump'&&event.target.value){const [year,month]=event.target.value.split('-').map(Number);state.calendarYear=year;state.calendarMonth=month-1;writeRoute();render();}});
-document.addEventListener('error',event=>{if(event.target instanceof HTMLImageElement&&event.target.id!=='full-photo'&&localPhoto(event.target.getAttribute('src'))){const replacement=document.createElement('span');replacement.className='photo-unavailable';replacement.textContent=t('照片引用不可用，请重新上传。');event.target.replaceWith(replacement);}},true);
+document.addEventListener('error',event=>{if(event.target instanceof HTMLImageElement&&event.target.id!=='full-photo'&&localPhoto((event.target.getAttribute('src')||'').replace(/\/thumbnail$/,''))){const replacement=document.createElement('span');replacement.className='photo-unavailable';replacement.textContent=t('照片引用不可用，请重新上传。');event.target.replaceWith(replacement);}},true);
 document.getElementById('new-record').addEventListener('click',()=>actions.new());
 document.getElementById('profile-button').addEventListener('click',()=>navigate('mine'));
 document.getElementById('settings-button').addEventListener('click',()=>navigate('mine'));
 document.getElementById('filter-toggle').addEventListener('click',()=>{const form=document.getElementById('filters');form.hidden=!form.hidden;document.getElementById('filter-toggle').setAttribute('aria-expanded',String(!form.hidden));});
-document.getElementById('filters').addEventListener('submit',async event=>{event.preventDefault();const form=new FormData(event.currentTarget),values=Object.fromEntries(form);values.people=form.getAll('people').join(',');state.filters={...(state.filters.node?{node:state.filters.node,kind:state.filters.kind}:{}),...Object.fromEntries(Object.entries(values).filter(([,value])=>value))};writeRoute();await load();});
-document.getElementById('filters').addEventListener('reset',()=>{state.filters={};state.place=null;setTimeout(()=>{writeRoute();load();},0);});
+document.getElementById('filters').addEventListener('submit',async event=>{event.preventDefault();const form=new FormData(event.currentTarget),values=Object.fromEntries(form);values.people=form.getAll('people').join(',');state.filters={...(state.filters.node?{node:state.filters.node,kind:state.filters.kind}:{}),...Object.fromEntries(Object.entries(values).filter(([,value])=>value))};recordPage=1;writeRoute();await load();});
+document.getElementById('filters').addEventListener('reset',()=>{state.filters={};state.place=null;recordPage=1;setTimeout(()=>{writeRoute();load();},0);});
 let searchTimer,peopleTimer;
 document.addEventListener('input',event=>{if(event.target.id!=='people-search')return;state.personSearch=event.target.value;clearTimeout(peopleTimer);peopleTimer=setTimeout(()=>{const value=state.personSearch;render();const input=document.getElementById('people-search');input?.focus();input?.setSelectionRange(value.length,value.length);},250);});
-document.getElementById('search').addEventListener('input',event=>{clearTimeout(searchTimer);const value=event.target.value;searchTimer=setTimeout(()=>{state.q=value.trim();writeRoute(true);load();},300);});
+document.getElementById('search').addEventListener('input',event=>{clearTimeout(searchTimer);const value=event.target.value;searchTimer=setTimeout(()=>{state.q=value.trim();recordPage=1;writeRoute(true);load();},300);});
 function closeMenu(){document.getElementById('sidebar').classList.remove('is-open');document.getElementById('sidebar-shade').hidden=true;document.getElementById('menu-button').setAttribute('aria-expanded','false');}
 document.getElementById('menu-button').addEventListener('click',()=>{document.getElementById('sidebar').classList.add('is-open');document.getElementById('sidebar-shade').hidden=false;document.getElementById('menu-button').setAttribute('aria-expanded','true');});
 document.getElementById('sidebar-shade').addEventListener('click',closeMenu);
@@ -340,4 +480,5 @@ window.addEventListener('everhere:language-request',event=>{
 try{
   restoreRoute();
   const session=await getSession();state.member=session.member;state.user=session.member||{name:t('本机档案'),email:''};updateNav();await load();
+  if(document.body.dataset.initialRecord&&!location.hash)await showDetail(document.body.dataset.initialRecord);
 }catch(error){content.innerHTML=h`<div class="error-state">${esc(error.message)}<br><button class="button small" data-action="retry">重新加载</button></div>`;}

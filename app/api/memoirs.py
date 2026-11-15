@@ -1,5 +1,4 @@
 """F2—F3：普通用户整理，受分配管理员审核，服务端按当前版本制作。"""
-from hashlib import sha256
 from io import BytesIO
 
 from flask import Blueprint, g, request, send_file, current_app
@@ -7,10 +6,11 @@ from sqlalchemy import select
 
 from ..extensions import db
 from ..models import now
-from ..models_workflow import Memoir, MemoirRevision, MemoirAsset
+from ..models_workflow import Memoir, MemoirRevision, MemoirAsset, MemoirJob
 from ..security import APIError, body, member_required, admin_required
 from ..i18n import translate
 from ..services import memoir_pdf
+from ..services.memoir_jobs import queue_job, run_job, wake_worker
 from ..services.memoirs import active_revision, assigned, check_version, freeze, get_memoir, memoir_data, normalise_draft, touch
 
 bp = Blueprint('memoirs', __name__, url_prefix='/api/v1')
@@ -73,6 +73,7 @@ def submit(memoir_id):
 @bp.get('/admin/memoirs')
 @admin_required
 def queue():
+    wake_worker()
     rows = db.session.execute(select(Memoir, MemoirRevision).join(MemoirRevision, (MemoirRevision.memoir_id == Memoir.id) & (MemoirRevision.number == Memoir.revision_number)).where(
         Memoir.owner_id != g.member.id, (MemoirRevision.reviewer_id == g.member.id) | ((MemoirRevision.reviewer_id.is_(None)) & (Memoir.state == 'submitted'))).order_by(Memoir.updated_at))
     # 未领取任务只显示队列元数据，不开放正文与图片。
@@ -103,7 +104,11 @@ def claim(memoir_id):
 @admin_required
 def review_detail(memoir_id):
     item = get_memoir(memoir_id, admin=True)
-    assigned(item, active_revision(item))
+    revision = active_revision(item)
+    assigned(item, revision)
+    job = db.session.get(MemoirJob, revision.id)
+    if job and job.state in ('queued', 'running'):
+        wake_worker()
     return {'data': memoir_data(item, detail=True, staff=True)}
 
 
@@ -134,8 +139,14 @@ def review(memoir_id):
 def generate(memoir_id):
     data = body()
     item = get_memoir(memoir_id, admin=True, lock=True)
-    revision = check_version(item, data, revision=True)
+    revision = active_revision(item)
     assigned(item, revision)
+    job = db.session.get(MemoirJob, revision.id)
+    if data.get('revisionId') == revision.id and job and job.state in ('queued', 'running', 'succeeded'):
+        if job.state != 'succeeded':
+            wake_worker()
+        return {'data': memoir_data(item, detail=True, staff=True)}, 200 if job.state == 'succeeded' else 202
+    revision = check_version(item, data, revision=True)
     if item.state != 'approved':
         raise APIError('只能制作当前审核通过的版本。', 409, 'invalid_state')
     count = len(revision.snapshot['chapters'])
@@ -145,24 +156,16 @@ def generate(memoir_id):
     if type(font) is not int or not 10 <= font <= 16:
         raise APIError('字号须为 10—16。')
     layout = {'chapterOrder': order, 'fontSize': font}
-    assets = {a.id: a for a in db.session.scalars(select(MemoirAsset).where(MemoirAsset.revision_id == revision.id, MemoirAsset.kind == 'photo'))}
-    revision.layout = layout
-    try:
-        final = memoir_pdf.render_pdf(revision.snapshot, assets, layout)
-        preview = memoir_pdf.sample_pdf(final)
-    except Exception as error:
-        # 只记录异常类型，不泄露私人文字。失败保留已审核快照，允许再次制作。
-        current_app.logger.error('回忆录制作失败：%s', type(error).__name__)
-        revision.render_error = '生成失败，已保留审核材料，请检查图片或版式后重试。'
-        touch(item)
-        db.session.commit()
+    queue_job(item, revision, layout)
+    if data.get('background') is True:
+        wake_worker()
+        return {'data': memoir_data(item, detail=True, staff=True)}, 202
+    # 保留既有客户端的同步请求契约，并使用同一份持久任务。
+    run_job(revision.id)
+    item = get_memoir(memoir_id, admin=True)
+    revision = active_revision(item)
+    if revision.render_error:
         return {'data': memoir_data(item, detail=True, staff=True), 'error': {'code': 'render_failed', 'message': translate(revision.render_error)}}, 422
-    for kind, raw in [('final', final), ('preview', preview)]:
-        db.session.add(MemoirAsset(revision_id=revision.id, kind=kind, content_type='application/pdf', checksum=sha256(raw).hexdigest(), data=raw))
-    item.state = revision.state = 'ready'
-    revision.render_error = ''
-    touch(item)
-    db.session.commit()
     return {'data': memoir_data(item, detail=True, staff=True)}
 
 

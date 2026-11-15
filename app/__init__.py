@@ -1,6 +1,7 @@
 """Flask 应用工厂：扩展、蓝图、页面和统一异常边界。"""
 
 from pathlib import Path
+from uuid import uuid4
 
 from flask import Flask, g, jsonify, redirect, render_template, request, url_for
 from sqlalchemy import event, text
@@ -55,8 +56,9 @@ def create_app(test_config=None):
         if member and session.get('auth_epoch', 0) == member.auth_epoch:
             return member
         return None
-    from .api import auth, drafts, graph, records, accounts, memoirs, shop
-    for blueprint in (auth.bp, records.bp, graph.bp, drafts.bp, accounts.bp, memoirs.bp, shop.bp):
+    from .api import auth, drafts, graph, records, accounts, memoirs, shop, order_processing, connections, home
+    for blueprint in (auth.bp, records.bp, graph.bp, drafts.bp, accounts.bp, memoirs.bp, shop.bp,
+                      order_processing.bp, connections.bp, home.bp):
         app.register_blueprint(blueprint)
     from .api.mobile_identity import bp as mobile_identity_bp
     app.register_blueprint(mobile_identity_bp)
@@ -66,17 +68,40 @@ def create_app(test_config=None):
     def language_context():
         return {'_': translate, 'ui_locale': ui_locale()}
 
+    @app.get('/album')
+    @app.get('/places')
+    @app.get('/connections')
+    @app.get('/records/<source_id>')
     @app.get("/")
-    def index():
-        return render_template("index.html", user=g.user or {"name": translate("本机档案")})
+    def index(source_id=None):
+        view = {'/album': 'timeline', '/places': 'places', '/connections': 'connections'}.get(request.path, 'home')
+        if source_id is not None:
+            view = 'timeline'
+        return render_template("index.html", user=g.user or {"name": translate("本机档案")},
+                               initial_view=view, record_id=source_id)
 
     @app.get("/login")
     def login():
         return redirect(url_for("workspace") + '#account')
 
+    @app.get('/account')
+    @app.get('/memoirs')
+    @app.get('/memoirs/<item_id>')
+    @app.get('/shop')
+    @app.get('/shop/products/<item_id>')
+    @app.get('/orders')
+    @app.get('/orders/<item_id>')
+    @app.get('/admin')
+    @app.get('/admin/memoirs')
+    @app.get('/admin/products')
+    @app.get('/admin/orders')
+    @app.get('/admin/orders/<item_id>')
     @app.get('/workspace')
-    def workspace():
-        return render_template('workspace.html')
+    def workspace(item_id=None):
+        path = request.path.removesuffix('/' + item_id) if item_id else request.path
+        tab = {'/shop/products': 'product', '/admin/memoirs': 'admin-memoirs',
+               '/admin/products': 'admin-products', '/admin/orders': 'admin-orders'}.get(path, path[1:])
+        return render_template('workspace.html', initial_tab=tab, item_id=item_id)
 
     from .cli import register_commands
     register_commands(app)
@@ -97,7 +122,7 @@ def create_app(test_config=None):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "same-origin"
         response.headers["Content-Security-Policy"] = "default-src 'self'; img-src 'self' blob: data:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
-        if request.path.startswith(("/api/", "/v1/", "/login", "/workspace")) or request.path == "/":
+        if not request.path.startswith('/static/'):
             response.headers["Cache-Control"] = "no-store, private"
         return response
 
@@ -117,10 +142,17 @@ def create_app(test_config=None):
     def database_error(error):
         db.session.rollback()
         # 不记录 SQL 参数，避免日记正文与密码进入日志。
-        app.logger.error("数据库操作失败：%s", type(error).__name__)
+        reference = uuid4().hex[:12]
+        app.logger.error("数据库操作失败 %s：%s", reference, type(error).__name__)
         if request.path.startswith('/v1/'):
             return jsonify(error='temporarily_unavailable'), 503
-        return jsonify(error={"code": "database_unavailable", "message": translate("暂时无法保存或读取数据，请稍后重试。")}), 503
+        return jsonify(error={"code": "database_unavailable", "message": translate("暂时无法保存或读取数据，请稍后重试。"), "reference": reference}), 503
+
+    @app.errorhandler(500)
+    def server_error(error):
+        reference = uuid4().hex[:12]
+        app.logger.error("服务异常 %s：%s", reference, type(error.original_exception).__name__)
+        return jsonify(error={"code": "server_error", "message": translate("请求无法完成。"), "reference": reference}), 500
 
     @app.errorhandler(HTTPException)
     def http_error(error):

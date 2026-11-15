@@ -110,7 +110,10 @@ def test_rsa2_signed_envelope_and_original_json(merchant):
         merchant.protocol.verify(raw.replace('78','79').encode(), proof)
 
 
-def test_physical_checkout_callback_idempotency_and_fulfillment(app, client, merchant):
+def test_physical_checkout_callback_idempotency_and_fulfillment(app, client, merchant, monkeypatch):
+    from app.services import commerce
+    stamp = now().replace(microsecond=950_000)
+    monkeypatch.setattr(commerce, 'now', lambda: stamp)
     register(client)
     admin = administrator(app)
     item = product(admin)

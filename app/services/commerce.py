@@ -116,9 +116,11 @@ def start(order, raw_address, actor):
             raise APIError('当前订单无法支付。', 409, 'invalid_payment_state')
         items = order_items(order.id)
         address = shipping_address(raw_address) if has_physical(items) else None
+        # 支付宝链接与 MySQL DATETIME 都使用秒，首次签名与重试必须一致。
+        expiry = (now() + PAYMENT_WINDOW).replace(microsecond=0)
         trade = OrderTrade(order_id=order.id, merchant_no=uuid4().hex, app_id=client.app_id,
                            seller_id=client.seller_id, environment=client.environment, amount_cents=order.total_cents,
-                           expires_at=now() + PAYMENT_WINDOW, address=address, stock=reserve(items))
+                           expires_at=expiry, address=address, stock=reserve(items))
         db.session.add(trade)
         order.state = 'confirming'
         event(order, 'checkout', actor)

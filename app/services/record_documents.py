@@ -41,15 +41,19 @@ def record_document(record):
         photo = db.session.get(Photo, uri.rsplit('/', 1)[-1])
         if not photo or photo.user_id != g.owner.id:
             raise APIError('照片不可读取。')
-        photos.append(photo_metadata(photo))
+        asset_id = photo.source_id or photo.id
+        photos.append(originals[asset_id] if asset_id in originals else photo_metadata(photo))
     point = None if value.get('latitude') is None else {'latitude': value['latitude'], 'longitude': value['longitude'], 'precision': value.get('placePrecision') or 'city'}
     common = {'type': 'record', 'id': record.source_id, 'createdAt': original.get('createdAt', millis(record.created_at)),
               'updatedAt': original.get('updatedAt', millis(record.updated_at)), 'deletedAt': value.get('deletedAt', original.get('deletedAt')) if record.is_deleted else None,
-              'title': record.title, 'content': record.content, 'recordState': record.record_state, 'completionState': value['completionState'],
+              'title': record.title, 'content': record.content, 'recordState': record.record_state,
+              'completionState': value.get('completionState') or {'occurred': 'completed', 'planned': 'planned'}.get(record.record_state, 'started'),
               'eventDate': record_date(value), 'timezone': value.get('timezone', original.get('timezone', current_app.config.get('EVENT_TIMEZONE', 'Asia/Shanghai'))),
               'placeName': value.get('placeName') or None, 'coordinates': point, 'tags': value.get('tags', []), 'mood': value.get('mood') or None,
               'showInTimeline': value.get('showInTimeline', True), 'showOnGlobe': value.get('showOnGlobe', False), 'privacy': 'standard',
               'entityIds': value.get('linkedEntityIds', []), 'threadIds': value.get('linkedThreadIds', []), 'chapterIds': value.get('linkedChapterIds', []), 'photos': photos}
+    if 'administrativeArea' in original:
+        common['administrativeArea'] = original['administrativeArea']
     return document(common)
 
 

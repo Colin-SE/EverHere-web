@@ -88,6 +88,19 @@ def remove(kind, source_id):
         raise APIError('当前只开放人物资料。', 404)
     node = owned_node(kind, source_id)
     check_version(node, body())
+    unlink_node(node)
+    node.is_deleted = True
+    node.version += 1
+    node.updated_at = now()
+    original = deepcopy(node.payload.get('androidDocument')) or node_document(node)
+    original['deletedAt'] = millis(node.updated_at)
+    original['updatedAt'] = millis(node.updated_at)
+    node.payload = {**node.payload, 'androidDocument': original}
+    db.session.commit()
+    return {'data': {'deleted': True, 'recordsRetained': True}}
+
+
+def unlink_node(node):
     for link in list(node.links):
         record = link.record
         changed = db.session.execute(db.update(LifeRecord).where(LifeRecord.id == record.id, LifeRecord.version == record.version).values(version=record.version + 1).execution_options(synchronize_session=False))
@@ -104,16 +117,7 @@ def remove(kind, source_id):
             record.payload = {**payload, 'androidDocument': record_document(record)}
     # 人物草稿中的预选关联同步解除，正式记录和原图始终保留。
     for draft in db.session.scalars(select(Draft).where(Draft.owner_id == g.owner.id, Draft.committed_at.is_(None), Draft.kind == 'record')):
-        field = KINDS[kind]
-        if source_id in draft.payload.get(field, []):
-            draft.payload = {**draft.payload, field: [x for x in draft.payload[field] if x != source_id]}
+        field = KINDS[node.kind]
+        if node.source_id in draft.payload.get(field, []):
+            draft.payload = {**draft.payload, field: [x for x in draft.payload[field] if x != node.source_id]}
             draft.version += 1
-    node.is_deleted = True
-    node.version += 1
-    node.updated_at = now()
-    original = deepcopy(node.payload.get('androidDocument')) or node_document(node)
-    original['deletedAt'] = millis(node.updated_at)
-    original['updatedAt'] = millis(node.updated_at)
-    node.payload = {**node.payload, 'androidDocument': original}
-    db.session.commit()
-    return {'data': {'deleted': True, 'recordsRetained': True}}

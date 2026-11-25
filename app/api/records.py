@@ -7,7 +7,7 @@ import warnings
 
 from flask import Blueprint, g, request, send_file
 from PIL import Image, ImageOps, UnidentifiedImageError
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from ..extensions import db
 from ..models import LifeRecord, Photo, now
@@ -199,6 +199,8 @@ def photo(photo_id):
     item = db.session.get(Photo, photo_id)
     if not item or item.user_id != g.owner.id:
         raise APIError("照片不存在。", 404)
+    if not item.data:
+        raise APIError("照片原图正在同步，请稍后重试。", 409, "original_not_ready")
     return send_file(BytesIO(item.data), mimetype=item.content_type, max_age=0)
 
 
@@ -208,6 +210,8 @@ def photo_thumbnail(photo_id):
     item = db.session.get(Photo, photo_id)
     if not item or item.user_id != g.owner.id:
         raise APIError("照片不存在。", 404)
+    if item.thumbnail_data is None and not db.session.scalar(select(func.length(Photo.data)).where(Photo.id == item.id)):
+        raise APIError("照片原图正在同步，请稍后重试。", 409, "original_not_ready")
     try:
         data = item.thumbnail_data or thumbnail(item.data)
     except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):

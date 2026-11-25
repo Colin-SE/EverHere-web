@@ -1,5 +1,4 @@
 """记录日期与旧元数据校验；不提供归档解析、导入或导出。"""
-import math
 import re
 from copy import deepcopy
 
@@ -90,9 +89,13 @@ def event_date(value):
 
 
 def document(raw):
-    if not isinstance(raw, dict) or raw.get('type') not in FIELDS:
+    if not isinstance(raw, dict) or not isinstance(raw.get('type'), str) or raw['type'] not in FIELDS:
         fail('不支持的 Android 资料类型。')
-    kind = raw['type']; value = exact(raw, SHARED+FIELDS[kind])
+    kind = raw['type']
+    fields = SHARED + FIELDS[kind]
+    if kind == 'record' and 'administrativeArea' in raw:
+        fields = fields + ['administrativeArea']
+    value = exact(raw, fields)
     identifier(value['id'])
     for key in ('createdAt','updatedAt','deletedAt'):
         if key != 'deletedAt' or value[key] is not None:
@@ -133,8 +136,17 @@ def document(raw):
             fail()
         for key, limit in [('latitude',90),('longitude',180)]:
             n=point[key]
-            if type(n) not in (float,int) or not math.isfinite(n) or abs(n)>limit:
+            if type(n) not in (float,int) or not -limit <= n <= limit:
                 fail()
+    area = value.get('administrativeArea')
+    if area is not None:
+        area = exact(area, ['countryId', 'subdivisionId'])
+        if not re.fullmatch('[A-Z]{3}', text(area['countryId'])):
+            fail()
+        subdivision = area['subdivisionId']
+        if subdivision is not None and not re.fullmatch('[A-Za-z0-9~_-]{1,64}', text(subdivision)):
+            fail()
+        value['administrativeArea'] = area
     if not isinstance(value['photos'],list) or len(value['photos'])>10:
         fail()
     photos=[]
@@ -146,7 +158,7 @@ def document(raw):
             fail()
         for key in ('width','height'):
             n=photo[key]
-            if n is not None and (type(n) not in (int,float) or n!=int(n) or not 1<=n<=100000000):
+            if n is not None and (type(n) not in (int,float) or not 1<=n<=100000000 or n!=int(n)):
                 fail()
         if photo['width'] and photo['height'] and photo['width']*photo['height']>100000000:
             fail()

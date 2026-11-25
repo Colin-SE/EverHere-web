@@ -298,6 +298,8 @@ def create_order():
             photo = db.session.get(Photo, photo_uri.rsplit('/', 1)[-1])
             if not photo or photo.user_id != g.owner.id:
                 raise APIError('所选照片不存在或不属于本人。', code='photoUri')
+            if not photo.data:
+                raise APIError('所选照片的原图正在同步，完成后可继续提交。', 409, 'original_not_ready')
             if row.get('authorisePhoto') is not True:
                 raise APIError('请确认将照片用于本订单。', code='authorisePhoto')
             if len(photo.data) > 10 * 1024 * 1024:

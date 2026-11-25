@@ -453,7 +453,20 @@ document.addEventListener('click',async event=>{
 document.getElementById('detail-dialog').addEventListener('close',()=>detailSequence++);
 document.addEventListener('keydown',event=>{if(event.target.matches('[data-record][role="button"]')&&['Enter',' '].includes(event.key)){event.preventDefault();event.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
 document.addEventListener('change',event=>{if(event.target.id==='calendar-jump'&&event.target.value){const [year,month]=event.target.value.split('-').map(Number);state.calendarYear=year;state.calendarMonth=month-1;writeRoute();render();}});
-document.addEventListener('error',event=>{if(event.target instanceof HTMLImageElement&&event.target.id!=='full-photo'&&localPhoto((event.target.getAttribute('src')||'').replace(/\/thumbnail$/,''))){const replacement=document.createElement('span');replacement.className='photo-unavailable';replacement.textContent=t('照片引用不可用，请重新上传。');event.target.replaceWith(replacement);}},true);
+document.addEventListener('error',async event=>{
+  const image=event.target;
+  if(!(image instanceof HTMLImageElement)||image.id==='full-photo')return;
+  const source=image.getAttribute('src')||'';
+  if(!localPhoto(source.replace(/\/thumbnail$/,'')))return;
+  const notice=document.createElement('span');
+  notice.className='photo-unavailable';
+  notice.textContent=t('照片暂时无法读取，可刷新页面重试。');
+  image.replaceWith(notice);
+  try{
+    const response=await fetch(source,{method:'HEAD',cache:'no-store'});
+    if(response.status===409)notice.textContent=t('照片原图正在同步，请稍后重试。');
+  }catch{}
+},true);
 document.getElementById('new-record').addEventListener('click',()=>actions.new());
 document.getElementById('profile-button').addEventListener('click',()=>navigate('mine'));
 document.getElementById('settings-button').addEventListener('click',()=>navigate('mine'));

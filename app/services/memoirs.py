@@ -94,6 +94,8 @@ def freeze(memoir):
             if not photo or photo.user_id != memoir.space_id:
                 raise APIError('所选照片不可用，请重新选择。', code='photoUris')
             if photo.id not in photos:
+                if not photo.data:
+                    raise APIError('所选照片的原图正在同步，完成后可继续提交。', 409, 'original_not_ready')
                 byte_count += len(photo.data)
                 if byte_count > 64 * 1024 * 1024:
                     raise APIError('提交照片总计最多 64 MiB，请减少选图后重试。', 413, 'photoUris')

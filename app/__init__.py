@@ -48,7 +48,7 @@ def create_app(test_config=None):
     limiter.init_app(app)
     login_manager.init_app(app)
     from .models_workflow import Member
-    from . import models_identity, models_trade
+    from . import models_identity, models_sync, models_trade
     from .services.alipay import Alipay, GATEWAYS
     mode = app.config.get('ALIPAY_MODE', 'disabled')
     if mode != 'disabled':
@@ -68,6 +68,9 @@ def create_app(test_config=None):
         app.register_blueprint(blueprint)
     from .api.mobile_identity import bp as mobile_identity_bp
     app.register_blueprint(mobile_identity_bp)
+    from .api.mobile_sync import assets, sync
+    app.register_blueprint(sync)
+    app.register_blueprint(assets)
     app.before_request(load_user)
 
     @app.context_processor

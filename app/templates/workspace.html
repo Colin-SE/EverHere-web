@@ -23,6 +23,6 @@
     <p id="workspace-error" class="error" role="alert" hidden></p>
     <div id="workspace-content" aria-live="polite"></div>
   </main>
-  <footer>Everhere · {{ _('私人记录，由你选择分享的范围') }}</footer>
+  <footer>Everhere · {{ _('私人记录，由你选择分享的范围') }}{% if config.get('ICP_FILING_NUMBER') %} · {% include "_icp_filing.html" %}{% endif %}</footer>
 </body>
 </html>

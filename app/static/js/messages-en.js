@@ -1,5 +1,8 @@
 /* 由 tools/build-i18n.py 生成；请编辑 app/locales/en.json。 */
 export default {
+  "照片暂时无法读取，可刷新页面重试。": "The photo is unavailable. Refresh to try again.",
+  "照片原图正在同步，请稍后重试。": "The original photo is still syncing. Try again shortly.",
+  "所选照片的原图正在同步，完成后可继续提交。": "The selected original photo is still syncing. You can submit once it finishes.",
   " · 原记录已变化，提交前须更新": " · Source changed; refresh it before submitting",
   " · 已保存授权照片": " · Authorised photo saved",
   "/ 件": "/ item",

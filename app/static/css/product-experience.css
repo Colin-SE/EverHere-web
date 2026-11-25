@@ -1,3 +1,10 @@
+.icp-filing {
+  color: #526344;
+  font-size: .75rem;
+  text-decoration: underline;
+  text-underline-offset: .2em;
+}
+
 .connection-notice {
   margin: 0 0 1rem;
   padding: .75rem 1rem;

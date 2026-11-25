@@ -139,14 +139,17 @@ def request_code(address, purpose):
     email = email_address(address)
     if purpose not in ('register', 'reset'):
         fail('invalid_purpose')
-    key = limit(email, 'mail', 3)
-    # 同邮箱的所有验证码请求串行；旧信不会在新信之后重新成为有效码。
+    bucket = 'mail' if purpose == 'register' else 'mail-reset'
+    key = limit(email, bucket, 3)
+    # 同一邮箱和用途的验证码请求串行。注册重试不会影响找回密码。
     db.session.scalar(select(IdentityLimit).where(IdentityLimit.key == key).with_for_update())
     existing = db.session.scalar(select(Member).where(Member.email == email))
     challenge = EmailChallenge(id=str(uuid4()), email=email, purpose=purpose, expires_at=now() + timedelta(minutes=10))
     code = f'{secrets.randbelow(100000000):08d}'
     challenge.code_mac = mac('code', challenge.id, email, purpose, code)
-    db.session.execute(update(EmailChallenge).where(EmailChallenge.email == email, EmailChallenge.consumed.is_(False)).values(consumed=True))
+    db.session.execute(update(EmailChallenge).where(
+        EmailChallenge.email == email, EmailChallenge.purpose == purpose, EmailChallenge.consumed.is_(False),
+    ).values(consumed=True))
     db.session.add(challenge)
     # 响应格式不泄漏账号存在性；重复注册码不能用于接管旧账号。
     if (purpose == 'register' and not existing) or (purpose == 'reset' and existing):

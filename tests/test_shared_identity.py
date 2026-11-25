@@ -176,6 +176,23 @@ def test_challenge_attempt_expiry_binding_and_resend(shared):
     assert mobile(app, 'register', dict(challengeId=cid3, code=code3, password=PASSWORD)).status_code == 201
 
 
+def test_registration_cooldown_does_not_block_password_recovery(shared):
+    app, sent = shared
+    register_mobile(shared)
+    email = 'shared@example.test'
+    web = Client(app)
+    for _ in range(2):
+        assert web.call('POST', '/accounts/code', dict(email=email, purpose='register')).status_code == 200
+    assert mobile(app, 'code', dict(email=email, purpose='register')).status_code == 429
+    assert len(sent) == 1
+
+    cid, code = challenge(shared, purpose='reset', email=email)
+    assert mobile(app, 'code', dict(email=email, purpose='register')).status_code == 429
+    assert mobile(app, 'reset-password', dict(challengeId=cid, code=code, password='replacement-password')).status_code == 200
+    fresh = mobile(app, 'code', dict(email='fresh@example.test', purpose='register'))
+    assert fresh.status_code == 200 and sent[-1][0] == 'fresh@example.test'
+
+
 def test_region_cookie_csrf_logout_and_other_session_isolation(shared):
     app, _ = shared
     user_id = register_mobile(shared)

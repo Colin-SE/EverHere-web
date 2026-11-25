@@ -63,6 +63,7 @@
   "已完成": "Completed",
   "已有账户，去登录": "Already registered? Sign in",
   "建立你的私人账户": "Create your private account",
+  "请使用尚未注册的邮箱。已有账户可直接登录，忘记密码可在下方找回。": "Use an email address you have not registered. If you already have an account, sign in or reset your password below.",
   "当前修改尚未保存，确认离开吗？": "Your changes are not saved. Leave this page?",
   "当前可确认待支付订单。支付、收货信息和交付将在下一阶段开放。": "You can confirm an unpaid order now. Payment, delivery details and fulfilment will be available in the next phase.",
   "当前没有待处理的稿件。": "There are no manuscripts to process.",

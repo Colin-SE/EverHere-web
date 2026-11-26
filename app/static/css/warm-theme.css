@@ -1,0 +1,105 @@
+/* 全站暖色主题：相册与回忆录、商城共用审核确认的色板。 */
+:root {
+  --warm-bg: #fff8f1;
+  --warm-paper: #fffcf8;
+  --warm-soft: #fff3e8;
+  --warm-line: #e8dcd0;
+  --warm-ink: #30251f;
+  --warm-muted: #75675d;
+  --warm-accent: #a0441b;
+  --warm-accent-dark: #783215;
+  --warm-tint: #f6e3d5;
+  --bg: var(--warm-bg);
+  --surface: var(--warm-paper);
+  --ink: var(--warm-ink);
+  --muted: var(--warm-muted);
+  --line: var(--warm-line);
+  --accent: var(--warm-accent);
+  --accent-dark: var(--warm-accent-dark);
+  --accent-light: var(--warm-tint);
+  --border: var(--warm-line);
+  --paper: var(--warm-paper);
+  --account-blue: var(--warm-accent);
+}
+
+/* 大面积色块统一为纸白与浅杏；仅小标签保留状态语义。 */
+html, body, .main-content { background: var(--warm-bg); color: var(--warm-ink); }
+.sidebar, .bottom-nav { background: var(--warm-bg); border-color: var(--warm-line); }
+.topbar, .workspace-header { background: var(--warm-paper); border-color: var(--warm-line); }
+.create-life-card, .year-memory-card, .home-plan-card,
+.home-ongoing-card, .home-privacy-card, .rail-card, .settings-card,
+.record-card, .calendar-panel, .node-card, .mine-account, .mine-row,
+.card, .earth-panel, .connection-node {
+  background: var(--warm-paper);
+  border-color: var(--warm-line);
+  color: var(--warm-ink);
+}
+.create-life-card, .home-ongoing-card { background: var(--warm-soft); }
+.home-ongoing-card>.home-section-heading>svg { color: var(--warm-accent); }
+.home-privacy-card p, .home-privacy-card>.text-button { color: var(--warm-muted); }
+.home-privacy-card>svg { color: #657451; }
+.home-tools>div, .filter-panel, .more-fields, .chapter, .variant,
+.record-picker, .custom-preview { background: var(--warm-soft); border-color: var(--warm-line); }
+.native-plan+.native-plan, .home-ongoing-card .native-plan+button,
+.year-controls, .record-card, .calendar-day, .tag-cloud button,
+.photo-upload, .connection-node, .custom-preview { border-color: var(--warm-line); }
+.home-tools button+button { border-color: var(--warm-line); }
+.record-card:hover, .node-card:hover { border-color: #d5b69d; }
+
+/* 主操作共享同一陶橙；保持现有按钮尺寸与圆角。 */
+.button.primary, button.primary, .native-write, .round-add,
+.account-button, #auth-form .button.primary {
+  background: var(--warm-accent);
+  border-color: var(--warm-accent);
+  color: #fffaf5;
+}
+.button.primary:hover, button.primary:hover, .native-write:hover,
+.round-add:hover, .account-button:hover, #auth-form .button.primary:hover {
+  background: var(--warm-accent-dark);
+  border-color: var(--warm-accent-dark);
+  color: #fffaf5;
+}
+.nav-item.active, .nav-item:hover { background: var(--warm-tint); color: var(--warm-accent); }
+.bottom-nav>button.active, .text-button { color: var(--warm-accent); }
+.bottom-nav .bottom-add>i { background: var(--warm-accent); border-color: var(--warm-bg); }
+.album-letter { background: var(--warm-tint); color: var(--warm-accent); }
+.avatar, .small-avatar, .mine-avatar { background: var(--warm-tint); color: var(--warm-accent); }
+.node-card .node-symbol, .node-card:nth-child(3n+2) .node-symbol,
+.node-card:nth-child(3n) .node-symbol { background: var(--warm-tint); color: var(--warm-accent); }
+
+/* 正文、地点和时间使用暖棕层级，链接仍有图标或按钮形式可识别。 */
+.record-card h3, .detail-heading h2 { color: var(--warm-ink); }
+.record-excerpt, .detail-text, .prose, .card p { color: #5f5147; }
+.record-place, .record-private, .photo-count { color: #8b512e; }
+.record-title-row time, .muted, .card p.muted, .intro,
+.progress-list time, .earth-panel p { color: var(--warm-muted); }
+.state-occurred { background: #f0ebe4; color: #6c6054; }
+.state-ongoing { background: var(--warm-tint); color: var(--warm-accent); }
+.state-planned { background: #fff0cf; color: #855d18; }
+.state-recurring { background: #edf0e6; color: #5a6845; }
+.tag, .tag-cloud button { background: #f5eee5; color: #80634d; }
+.detail-relations span { background: var(--warm-tint); color: #805438; }
+input:not([type=checkbox]), textarea, select {
+  background: var(--warm-paper); color: var(--warm-ink); border-color: var(--warm-line);
+}
+button:focus-visible, a:focus-visible, input:focus-visible,
+select:focus-visible, textarea:focus-visible { outline: 3px solid #a0441b80; outline-offset: 3px; }
+
+/* 商城与相册共用品牌色；保留现有横向导航和商品图。 */
+.wordmark { color: var(--warm-ink); }
+nav a[aria-current] { color: var(--warm-accent); border-bottom-color: var(--warm-accent); }
+.account-tools a, .card .price, .auth a { color: var(--warm-accent); }
+.card, .empty { border-radius: 18px; }
+.workspace-header~main button, .button,
+input:not([type=checkbox]), textarea, select { border-radius: 12px; }
+.product-cover { background: var(--warm-soft); border-radius: 18px 18px 0 0; }
+.product-cover--detail { border-radius: 18px; }
+.product-gallery img { background: var(--warm-soft); }
+.badge { background: var(--warm-tint); color: var(--warm-accent); }
+.notice, .connection-notice { background: #fff0d9; border-color: #ddc49b; color: #72582d; }
+.earth-panel { border: 1px solid var(--warm-line); }
+.earth-panel a { color: var(--warm-accent); }
+.earth-panel canvas { border-radius: 18px; }
+a[aria-current="page"].button { outline-color: var(--warm-accent); }
+/* 错误/删除继续使用警示色，避免与普通操作混淆。 */
+.error, .form-error, button.danger, .button.danger { color: #9b3f35; }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Everhere · {{ _('回忆与纪念') }}</title>
-  <link rel="icon" href="{{ url_for('static', filename='images/mobile/app_icon.svg') }}">
+  <link rel="icon" href="{{ url_for('static', filename='images/mobile/app_icon.svg', v='20261127-brand') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/workspace.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/product-experience.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/warm-theme.css') }}">
@@ -12,7 +12,7 @@
 <body data-initial-tab="{{ initial_tab }}" data-initial-item="{{ item_id or '' }}">
   <a class="skip" href="#workspace-content">{{ _('跳转至内容') }}</a>
   <header class="workspace-header">
-    <a class="wordmark" href="/"><img src="{{ url_for('static', filename='images/mobile/app_icon.svg') }}" alt="">Everhere<small>{{ _('在场 · 让回忆有形') }}</small></a>
+    <a class="wordmark" href="/"><img src="{{ url_for('static', filename='images/mobile/app_icon.svg', v='20261127-brand') }}" alt="">Everhere<small>{{ _('在场 · 让回忆有形') }}</small></a>
     <nav aria-label="{{ _('主要导航') }}">
       <a href="/">{{ _('人生相册') }}</a><a href="#memoirs" data-tab="memoirs">{{ _('回忆录') }}</a><a href="#shop" data-tab="shop">{{ _('文创商城') }}</a>
       <a href="#orders" data-tab="orders">{{ _('我的订单') }}</a><a href="#admin" data-tab="admin" id="admin-link" hidden>{{ _('制作与商城管理') }}</a>

@@ -4,7 +4,7 @@
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#fff9f3"><meta name="description" content="{{ _("记录过去、此刻与未来，收藏属于你的人生故事。") }}">
   <title>{{ _("我的生活 · 人生相册") }}</title>
-  <link rel="icon" href="{{ url_for('static', filename='images/mobile/app_icon.svg') }}" type="image/svg+xml">
+  <link rel="icon" href="{{ url_for('static', filename='images/mobile/app_icon.svg', v='20261127-brand') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/native.css') }}">
   <script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
@@ -15,7 +15,7 @@
 <body data-current-view="home" data-initial-view="{{ initial_view }}" data-initial-record="{{ record_id or '' }}">
   <a href="#main" class="skip-link">{{ _("跳转至内容") }}</a>
   <aside class="sidebar" id="sidebar">
-    <a class="brand" href="/"><img src="{{ url_for('static', filename='images/mobile/app_icon.svg') }}" alt=""><span>{{ _("人生相册") }}<small>{{ _("我的私人生命档案") }}</small></span></a>
+    <a class="brand" href="/"><img src="{{ url_for('static', filename='images/mobile/app_icon.svg', v='20261127-brand') }}" alt=""><span>{{ _("人生相册") }}<small>{{ _("我的私人生命档案") }}</small></span></a>
     <div class="workspace-label">{{ _("过去 · 现在 · 未来") }} <i></i></div>
     <nav class="main-nav" aria-label="{{ _("主要导航") }}">
       <a href="/workspace#memoirs" class="nav-item">{{ _('回忆录') }}</a>

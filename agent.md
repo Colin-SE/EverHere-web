@@ -4,7 +4,7 @@
 
 主线为 `main`，业务代码基线 `378ddc4`，正式站已部署，数据库迁移头为 `20261125_album_sync`。当前需求以用户提供的五页设计报告 F1–F5 为首版范围，O1–O5 为后续可选项；此前“只实施 F1–F4”是历史批次，不等于报告没有 F5。
 
-开始工作先读 [当前需求](docs/requirements.md)、[报告完成度](docs/feature-completion.md)、[验证记录](docs/verification.md) 和对应接口。F1/F2/F4 核心已实现，F3 审批后需手动生成；F5 的模拟交易、首次下载和逐项取消规则仍有缺口，不得因支付宝代码存在而宣称全部完成。
+开始工作先读 [当前需求](docs/requirements.md)、[报告完成度](docs/feature-completion.md)、[验证记录](docs/verification.md) 和对应接口。F1/F2/F4 核心已实现，F3 审批后需手动生成；F5 的沙箱重配、首次下载和逐项取消规则仍需完成，不得因支付宝代码存在而宣称全部完成。
 
 当前共用账号与相册同步由同一 Flask/MySQL 应用提供，正式站已启用；旧 `/api/v1/cloud/*`、archive 和 lifegraph API 仍删除，新 `/v1/sync/*` 与 `/connections` 应分别说明。支付/订单处理/履约是不同状态。正式站支付宝 disabled；用户确认沙箱此前已可用，本次重建与服务器独立沙箱状态见 [支付记录](docs/web-product-p4-alipay.md)。
 

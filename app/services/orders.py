@@ -154,7 +154,7 @@ def change_order(order_id, data, *, staff=False):
         allowed = (allowed,) if isinstance(allowed, str) else allowed
         if order.processing_state not in allowed:
             raise APIError('当前订单状态无法执行此操作。', 409, 'invalid_state')
-    # 条件更新也覆盖 SQLite 等不支持 SELECT FOR UPDATE 的隔离环境。
+    # 条件更新在并发领取时再次核对负责人，避免覆盖其他事务的领取结果。
     stamp = now()
     values = {'processing_state': next_state, 'version': expected + 1, 'updated_at': stamp}
     if action == 'claim':

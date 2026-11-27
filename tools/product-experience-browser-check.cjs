@@ -55,8 +55,10 @@ async function run() {
     await page.getByRole('heading', { name: 'Public library' }).waitFor();
 
     await page.goto(base + '/album');
+    await page.waitForFunction(() => document.body.dataset.currentView === 'timeline' && !document.querySelector('#view-content[aria-busy="true"]'));
     await page.locator('#new-record').click();
     await page.locator('[data-create-state="occurred"]').click();
+    await page.locator('#editor-dialog[open]').waitFor();
     await page.locator('#record-form [name="title"]').fill('Offline text stays here');
     await owner.setOffline(true);
     await page.locator('[data-network-status]').waitFor();

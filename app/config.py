@@ -1,4 +1,4 @@
-"""正式运行连接 MySQL；SQLite 仅由测试配置显式注入。"""
+"""运行与验收统一连接 MySQL，各环境使用独立命名的数据库。"""
 
 import os
 from datetime import timedelta

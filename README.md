@@ -56,15 +56,14 @@ python -m venv .venv
 
 `ALIPAY_MODE` 默认 `disabled`；另有 `sandbox` / `production`，沙箱可承载报告要求的无实际扣款模拟付款，界面应明确标识测试环境。启用渠道后，完整下载、退款和履约仍由订单归属、可信渠道结果与状态约束控制。现有代码未实现报告的首次下载后禁止取消，详见完成度 F5。
 
-正式站使用 MySQL；独立支付宝沙箱使用 SQLite 测试库、单独入口口令和密钥。2026-11-27 已在服务器启动独立沙箱服务，独立公网入口 https://sandbox.wyever.com 的 DNS/HTTPS 已配置，健康及匿名拒绝检查通过；支付宝控制台参数仍待填写，不能将服务可访问写成付款已恢复。
+正式站、本机、支付宝沙箱和自动化验收统一使用 MySQL，环境间使用不同库名和专用账号，详见 [数据库环境](docs/mysql-environments.md)。独立测试站 [sandbox.wyever.com](https://sandbox.wyever.com/shop) 已完成 DNS/HTTPS，商城无需额外入口密码；网站账号登录和管理员权限照常生效。支付宝控制台参数仍待填写，不能将服务可访问写成付款已恢复。
 
 ## 验证
 
 ```powershell
-$env:TEST_DATABASE_URL = 'sqlite://'
-.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe tools/run-with-mysql.py -m pytest
 ```
 
-MySQL 测试仅连接名称以 `_test` 结尾的隔离库。前端检查需要已安装 Playwright 和 Edge；`npm run test:browser:all` 启动独立合成服务，覆盖相册、语言和回忆录/商城流程。额外脚本见 `tools/product-experience-browser-check.cjs` 和 `tools/shared-identity-browser-check.cjs`。
+先在被 Git 忽略的 `tmp/mysql-databases.json` 或环境变量配置专用连接；MySQL 测试仅连接名称以 `_test` 结尾的隔离库，迁移测试再使用另一专用库。前端检查需要已安装 Playwright 和 Edge；通过 `python tools/run-with-mysql.py node tools/run-browser-checks.cjs` 启动独立合成服务，覆盖相册、语言和回忆录/商城流程。额外脚本见 `tools/product-experience-browser-check.cjs` 和 `tools/shared-identity-browser-check.cjs`。
 
 CI 检查、隔离浏览器、公网页面、真实邮件、Android 真机和支付渠道证据分别记录。密钥和业务配置只放 `.env` 或 Git 忽略的测试目录，不提交私人资料或测试凭据。

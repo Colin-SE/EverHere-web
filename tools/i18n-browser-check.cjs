@@ -1,4 +1,4 @@
-/* 两种语言的真实页面验收；只向独立内存验收服务写入合成资料。 */
+/* 两种语言的真实页面验收；只向独立 MySQL 验收服务写入合成资料。 */
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs/promises');
@@ -7,10 +7,16 @@ const fs=require('node:fs/promises');
  const context=await browser.newContext({viewport:{width:1440,height:1000},acceptDownloads:true});
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
  const base=process.env.TEST_BASE_URL||'http://127.0.0.1:5003';assert.match(base,/^http:\/\/(127\.0\.0\.1|localhost):(5003|5004)$/);
- // F1—F4 的隔离服务器使用 5004；仍须确认是 SQLite 合成环境，不能向 MySQL 日常库写验收资料。
+ // 仅使用专用端口和独立 _test 库，不能向日常或沙箱业务库写验收资料。
  assert.equal((await (await page.request.get(base+'/health')).json()).database,'mysql');
  const nav=async view=>{await page.locator(`#sidebar [data-view="${view}"]`).click();await page.waitForFunction(()=>!document.querySelector('#view-content[aria-busy="true"]'));};
- const language=async value=>{await page.locator('[data-language-select]').selectOption(value);await page.waitForFunction(v=>document.documentElement.lang===v,value);await page.waitForFunction(()=>!document.querySelector('#view-content[aria-busy="true"]'));};
+ const language=async value=>{
+   const view=await page.locator('body').getAttribute('data-current-view');
+   await page.locator('[data-language-select]').selectOption(value);
+   await page.waitForFunction(v=>document.documentElement.lang===v,value);
+   await page.waitForFunction(v=>document.body.dataset.currentView===v&&!document.querySelector('#view-content[aria-busy="true"]'),view);
+   if(view==='home')await page.locator('.life-hero').waitFor();
+ };
  const noChinese=async label=>{
    const text=await page.locator('body').innerText();
    const rest=text.replaceAll('简体中文','').replaceAll('人生记录','').replaceAll('人物','').replaceAll('保留中文正文与标签','').replaceAll('保留标签','');

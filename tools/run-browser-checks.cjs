@@ -40,7 +40,8 @@ async function main(){
  const temporary=path.join(root,'test-results','browser-tmp');await fs.mkdir(temporary,{recursive:true});
  process.env.TEMP=temporary;process.env.TMP=temporary;
  await withServer('run-check-server.py',5003,['browser-check.cjs','i18n-browser-check.cjs']);
- await withServer('workflows-check-server.py',5004,['workflows-browser-check.cjs']);
+ await withServer('workflows-check-server.py',5004,['workflows-browser-check.cjs','product-experience-browser-check.cjs']);
+ await withServer('shared-identity-check-server.py',5017,['shared-identity-browser-check.cjs']);
 }
 function cleanup(){for(const child of children)child.kill();}
 process.on('SIGINT',()=>{cleanup();process.exit(130);});

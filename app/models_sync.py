@@ -6,7 +6,7 @@ from .models import new_id
 class AlbumChange(db.Model):
     __tablename__ = 'album_sync_changes'
     __table_args__ = (db.UniqueConstraint('space_id', 'kind', 'subject_id', 'version'),)
-    sequence = db.Column(db.BigInteger().with_variant(db.Integer(), 'sqlite'), primary_key=True, autoincrement=True)
+    sequence = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     space_id = db.Column(db.String(36), db.ForeignKey('local_spaces.id'), nullable=False, index=True)
     kind = db.Column(db.String(8), nullable=False)
     subject_id = db.Column(db.String(100), nullable=False)

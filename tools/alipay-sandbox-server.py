@@ -1,7 +1,7 @@
-"""本机支付宝沙箱服务。独立数据库、访问口令和沙箱配置均位于项目 tmp 目录。"""
+"""独立 MySQL 支付宝沙箱；直接使用网站账号权限，不增加入口密码。"""
 import base64
-import hmac
 import json
+import os
 import secrets
 import sys
 from threading import Thread
@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from flask_migrate import upgrade
 from waitress import serve
-from werkzeug.wrappers import Response
+from sqlalchemy.engine import make_url
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -34,9 +34,13 @@ def write_new(path, value):
 def prepare():
     STATE.mkdir(parents=True, exist_ok=True)
     access_file = STATE / 'test-access.json'
-    write_new(access_file, json.dumps({'entranceUser': 'everhere-test', 'entrancePassword': secrets.token_urlsafe(24),
-                                       'adminEmail': ADMIN, 'adminPassword': secrets.token_urlsafe(24),
+    write_new(access_file, json.dumps({'adminEmail': ADMIN, 'adminPassword': secrets.token_urlsafe(24),
                                        'sessionKey': secrets.token_hex(32)}, indent=2))
+    credentials = json.loads(access_file.read_text(encoding='utf-8-sig'))
+    if any(name in credentials for name in ('entranceUser', 'entrancePassword')):
+        credentials.pop('entranceUser', None)
+        credentials.pop('entrancePassword', None)
+        access_file.write_text(json.dumps(credentials, indent=2), encoding='utf-8')
     write_new(STATE / 'settings.json', json.dumps({'appId': '', 'sellerId': '', 'sandboxGateway': ''}, indent=2))
     private = STATE / 'merchant-private.pem'
     if not private.exists():
@@ -78,20 +82,20 @@ def seed(application, credentials):
             db.session.commit()
 
 
-def require_entry(app, credentials):
-    secret = credentials['entranceUser'] + ':' + credentials['entrancePassword']
-    expected = 'Basic ' + base64.b64encode(secret.encode()).decode('ascii')
-
-    def gated(environ, send):
-        path = environ.get('PATH_INFO', '')
-        method = environ.get('REQUEST_METHOD')
-        if path == '/payments/alipay/notify' and method == 'POST' or path == '/health' and method in ('GET', 'HEAD'):
-            return app(environ, send)
-        if hmac.compare_digest(environ.get('HTTP_AUTHORIZATION', '').encode(), expected.encode()):
-            return app(environ, send)
-        return Response('Everhere Alipay Sandbox', status=401,
-                        headers={'WWW-Authenticate': 'Basic realm="Everhere P4 Sandbox"', 'Cache-Control': 'no-store'})(environ, send)
-    return gated
+def database_url():
+    """只接受明确配置的独立 MySQL 库，避免误连接正式库或回退 SQLite。"""
+    value = os.environ.get('ALIPAY_SANDBOX_DATABASE_URL', '').strip()
+    config_file = STATE / 'database.json'
+    if not value and config_file.exists():
+        value = str(json.loads(config_file.read_text(encoding='utf-8-sig')).get('databaseUrl', '')).strip()
+    try:
+        url = make_url(value)
+    except Exception:
+        raise RuntimeError('请在沙箱 database.json 或 ALIPAY_SANDBOX_DATABASE_URL 配置独立 MySQL 连接。') from None
+    name = url.database or ''
+    if url.drivername != 'mysql+pymysql' or not name.endswith(('_sandbox', '_test')):
+        raise RuntimeError('沙箱必须使用 mysql+pymysql，数据库名称须以 _sandbox 或 _test 结尾。')
+    return value
 
 
 def main():
@@ -101,8 +105,8 @@ def main():
         return
     credentials = json.loads((STATE / 'test-access.json').read_text(encoding='utf-8-sig'))
     payment = payment_config()
-    application = create_app({'SECRET_KEY': credentials['sessionKey'], 'SQLALCHEMY_DATABASE_URI': 'sqlite:///' +
-        (STATE / 'sandbox.sqlite3').as_posix(), 'TESTING': False, 'SESSION_COOKIE_SECURE': True,
+    application = create_app({'SECRET_KEY': credentials['sessionKey'], 'SQLALCHEMY_DATABASE_URI': database_url(),
+        'TESTING': False, 'SESSION_COOKIE_SECURE': True,
         'RATELIMIT_ENABLED': True, 'MAX_CONTENT_LENGTH': 16 * 1024 * 1024, **payment})
     seed(application, credentials)
     if payment:
@@ -116,7 +120,7 @@ def main():
                     application.logger.error('沙箱超时关单中断：%s', type(error).__name__)
         Thread(target=close_expired, daemon=True, name='sandbox-expiry').start()
     print('Everhere P4 sandbox ready on 127.0.0.1:15044; Alipay ' + ('configured' if payment else 'awaiting configuration'), flush=True)
-    serve(require_entry(application, credentials), listen='127.0.0.1:15044', threads=6,
+    serve(application, listen='127.0.0.1:15044', threads=6,
           max_request_body_size=16 * 1024 * 1024)
 
 

@@ -3,6 +3,9 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      TEST_DATABASE_URL: mysql+pymysql://album_test:ci-test-only@127.0.0.1:3306/life_album_test?charset=utf8mb4
+      IDENTITY_MIGRATION_TEST_URL: mysql+pymysql://album_test:ci-test-only@127.0.0.1:3306/life_album_migration_test?charset=utf8mb4
     services:
       mysql:
         image: mysql:8.4
@@ -24,9 +27,15 @@ jobs:
         with:
           node-version: '22'
       - run: pip install -r requirements.lock.txt
-      - name: SQLite business and permission tests
-        run: python -m pytest
+      - name: Prepare separate MySQL migration database
+        run: |
+          python - <<'PY'
+          import pymysql
+          connection = pymysql.connect(host='127.0.0.1', user='root', password='ci-root-only', autocommit=True)
+          with connection.cursor() as cursor:
+              cursor.execute('CREATE DATABASE life_album_migration_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci')
+              cursor.execute("GRANT ALL PRIVILEGES ON life_album_migration_test.* TO 'album_test'@'%'")
+          connection.close()
+          PY
       - name: MySQL migration and business tests
-        env:
-          TEST_DATABASE_URL: mysql+pymysql://album_test:ci-test-only@127.0.0.1:3306/life_album_test?charset=utf8mb4
         run: python -m pytest

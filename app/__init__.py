@@ -1,11 +1,12 @@
 """Flask 应用工厂：扩展、蓝图、页面和统一异常边界。"""
 
+import os
 from pathlib import Path
 from uuid import uuid4
 
 from flask import Flask, g, jsonify, redirect, render_template, request, url_for
-from sqlalchemy import event, text
-from sqlalchemy.engine import Engine
+from sqlalchemy import text
+from sqlalchemy.engine import make_url
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.exceptions import HTTPException
 
@@ -16,13 +17,6 @@ from .i18n import error_message, translate, ui_locale
 from flask import session
 
 
-@event.listens_for(Engine, "connect")
-def sqlite_foreign_keys(connection, _):
-    # SQLite 测试环境同样执行外键约束，避免测试掩盖级联删除问题。
-    if connection.__class__.__module__.startswith("sqlite3"):
-        connection.execute("PRAGMA foreign_keys=ON")
-
-
 def create_app(test_config=None):
     app = Flask(__name__)
     # 静态图片等并发响应不得刷新旧 Cookie，覆盖刚建立的身份或 CSRF。
@@ -31,8 +25,14 @@ def create_app(test_config=None):
     if test_config is None:
         app.config.update(settings())
     else:
-        app.config.update(SECRET_KEY="tests-only", SQLALCHEMY_DATABASE_URI="sqlite://", TESTING=True, RATELIMIT_ENABLED=False)
+        app.config.update(SECRET_KEY="tests-only", SQLALCHEMY_DATABASE_URI=os.environ.get('TEST_DATABASE_URL'), TESTING=True, RATELIMIT_ENABLED=False)
         app.config.update(test_config)
+    try:
+        mysql_configured = make_url(app.config.get('SQLALCHEMY_DATABASE_URI')).get_backend_name() == 'mysql'
+    except Exception:
+        mysql_configured = False
+    if not mysql_configured:
+        raise RuntimeError('所有运行及验收环境必须明确配置独立命名的 MySQL 数据库。')
     if app.config.get('SHARED_IDENTITY_ENABLED'):
         import re
         if not re.fullmatch(r'[a-fA-F0-9]{64}', app.config.get('IDENTITY_SECRET', '')):

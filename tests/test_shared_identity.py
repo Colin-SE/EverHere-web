@@ -232,9 +232,9 @@ def test_disabled_by_default_and_request_bounds(app):
     assert mobile(app, 'login', {'padding': 'x' * 17000}).status_code == 413
 
 
-def test_credentials_survive_server_restart_and_expired_access_refreshes(tmp_path):
+def test_credentials_survive_server_restart_and_expired_access_refreshes(app):
     sent = []
-    config = dict(SQLALCHEMY_DATABASE_URI='sqlite:///' + str(tmp_path / 'identity.sqlite'),
+    config = dict(SQLALCHEMY_DATABASE_URI=app.config['SQLALCHEMY_DATABASE_URI'],
                   SHARED_IDENTITY_ENABLED=True, IDENTITY_SECRET='ab' * 32,
                   IDENTITY_TEST_MAILER=lambda *args: sent.append(args))
     first_app = create_app(config)
@@ -276,15 +276,9 @@ def test_only_explicit_loopback_proxy_can_supply_forwarded_ip():
     assert client.get('/', headers=headers, environ_overrides={'REMOTE_ADDR': '198.51.100.2'}).text == '198.51.100.2 http'
 
 
-@pytest.mark.parametrize('engine', ['sqlite', 'mysql'])
-def test_additive_migration_keeps_old_member_and_space(tmp_path, engine):
-    uri = 'sqlite:///' + str(tmp_path / 'migration.sqlite')
-    if engine == 'mysql':
-        uri = os.environ.get('IDENTITY_MIGRATION_TEST_URL')
-        if not uri:
-            pytest.skip('Requires an empty isolated MySQL migration _test database')
-        from sqlalchemy.engine import make_url
-        assert (make_url(uri).database or '').endswith('_test')
+def test_additive_migration_keeps_old_member_and_space(migration_database_url):
+    uri = migration_database_url
+    engine = 'mysql'
     application = create_app({'SQLALCHEMY_DATABASE_URI': uri})
     with application.app_context():
         upgrade(revision='20261102_product_images')

@@ -24,7 +24,7 @@ async function run() {
   const staff = await browser.newContext();
   const account = 'browser-p123-' + Date.now() + '@example.test';
   try {
-    assert.equal((await (await owner.request.get(base + '/health')).json()).database, 'sqlite');
+    assert.equal((await (await owner.request.get(base + '/health')).json()).database, 'mysql');
     await request(owner, '/accounts/register', { email: account, name: 'Browser buyer', password });
     await request(staff, '/accounts/login', { email: 'reviewer@example.test', password });
     const product = await request(staff, '/admin/products', {

@@ -282,9 +282,9 @@ def test_memoir_purchase_requires_own_ready_revision_and_active_variant(app, cli
     assert client.call('POST', '/shop/orders', order_body(catalogue, revisionId=ready['revisionId'])).status_code == 409
 
 
-def test_additive_migration_preserves_existing_sources_photos_and_drafts():
+def test_additive_migration_preserves_existing_sources_photos_and_drafts(migration_database_url):
     from app import create_app
-    application = create_app({'SQLALCHEMY_DATABASE_URI': 'sqlite://'})
+    application = create_app({'SQLALCHEMY_DATABASE_URI': migration_database_url})
     runner = application.test_cli_runner()
     assert runner.invoke(args=['db', 'upgrade', '20261020_remove_legacy']).exit_code == 0
     # 在新账户结构上线前建立旧空间/记录，模拟真实升级而非仅测试空库。

@@ -86,17 +86,11 @@ def limit(source, purpose, count, seconds=3600):
     key, clock = mac('limit', purpose, source), now()
     table = IdentityLimit.__table__
     values = dict(key=key, hits=1, resets_at=clock + timedelta(seconds=seconds))
-    if db.engine.dialect.name == 'mysql':
-        from sqlalchemy.dialects.mysql import insert
-        statement = insert(table).values(**values)
-        statement = statement.on_duplicate_key_update(
-            hits=case((table.c.resets_at <= clock, 1), else_=table.c.hits + 1),
-            resets_at=case((table.c.resets_at <= clock, values['resets_at']), else_=table.c.resets_at))
-    else:
-        from sqlalchemy.dialects.sqlite import insert
-        statement = insert(table).values(**values).on_conflict_do_update(index_elements=['key'], set_={
-            'hits': case((table.c.resets_at <= clock, 1), else_=table.c.hits + 1),
-            'resets_at': case((table.c.resets_at <= clock, values['resets_at']), else_=table.c.resets_at)})
+    from sqlalchemy.dialects.mysql import insert
+    statement = insert(table).values(**values)
+    statement = statement.on_duplicate_key_update(
+        hits=case((table.c.resets_at <= clock, 1), else_=table.c.hits + 1),
+        resets_at=case((table.c.resets_at <= clock, values['resets_at']), else_=table.c.resets_at))
     db.session.execute(statement)
     row = db.session.get(IdentityLimit, key, populate_existing=True)
     hits = row.hits

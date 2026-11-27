@@ -6,15 +6,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app import create_app
 from app.extensions import db
 from flask import request
+from mysql_check_database import database_url, prepare
 
 mailbox = {}
 application = create_app({
-    'SQLALCHEMY_DATABASE_URI': 'sqlite://', 'SESSION_COOKIE_SECURE': False,
+    'SQLALCHEMY_DATABASE_URI': database_url('IDENTITY_BROWSER_DATABASE_URL'), 'SESSION_COOKIE_SECURE': False,
     'SHARED_IDENTITY_ENABLED': True, 'IDENTITY_SECRET': 'ac' * 32,
     'IDENTITY_TEST_MAILER': lambda address, purpose, code: mailbox.update({(address, purpose): code}),
 })
-with application.app_context():
-    db.create_all()
+prepare(application)
 
 
 @application.get('/__test/code')

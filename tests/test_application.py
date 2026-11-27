@@ -146,9 +146,9 @@ def test_people_drafts_same_names_and_unlink_preserve_record(client):
     assert len(client.call('GET','/graph').json['data']['entities'])==1
 
 
-def test_empty_database_migration_matches_current_models():
+def test_empty_database_migration_matches_current_models(migration_database_url):
     from app import create_app
-    application=create_app({'SQLALCHEMY_DATABASE_URI':'sqlite://'})
+    application=create_app({'SQLALCHEMY_DATABASE_URI':migration_database_url})
     runner=application.test_cli_runner();result=runner.invoke(args=['db','upgrade']);assert result.exit_code==0,result.output
     checked=runner.invoke(args=['db','check']);assert checked.exit_code==0,checked.output
     with application.app_context():assert 'users' not in inspect(db.engine).get_table_names();db.engine.dispose()

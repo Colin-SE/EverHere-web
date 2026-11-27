@@ -1,4 +1,4 @@
-"""浏览器验收只使用内存合成库，不创建数据库备份。"""
+"""浏览器验收使用独立 MySQL 合成库。"""
 import sys
 from pathlib import Path
 
@@ -6,13 +6,12 @@ root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(root))
 from app import create_app
 from app.extensions import db
+from mysql_check_database import database_url, prepare
 
-# 内存 SQLite 由 Flask-SQLAlchemy 使用共享连接；无需保存可遗留的测试库文件；验收服务单线程避免共享内存连接的事务交错。
 directory = root / 'test-results'
 directory.mkdir(exist_ok=True)
-application = create_app({'SQLALCHEMY_DATABASE_URI': 'sqlite://', 'SESSION_COOKIE_SECURE': False})
-with application.app_context():
-    db.create_all()
+application = create_app({'SQLALCHEMY_DATABASE_URI': database_url('BROWSER_DATABASE_URL'), 'SESSION_COOKIE_SECURE': False})
+prepare(application)
 try:
     application.run(host='127.0.0.1', port=5003, debug=False, use_reloader=False, threaded=False)
 finally:

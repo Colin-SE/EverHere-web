@@ -8,7 +8,7 @@ const fs=require('node:fs/promises');
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
  const base=process.env.TEST_BASE_URL||'http://127.0.0.1:5003';
  assert.match(base,/^http:\/\/(127\.0\.0\.1|localhost):(5003|5004)$/);
- assert.equal((await (await page.request.get(base+'/health')).json()).database,'sqlite');
+ assert.equal((await (await page.request.get(base+'/health')).json()).database,'mysql');
  await fs.mkdir('test-results',{recursive:true});
  const nav=async view=>{await page.locator(`#sidebar [data-view="${view}"]`).click();await page.waitForFunction(()=>!document.querySelector('#view-content .loading-state'));};
  try{

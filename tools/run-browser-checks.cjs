@@ -1,4 +1,4 @@
-/* 在同一网络环境启动合成服务和浏览器；所有子进程结束后释放内存库。 */
+/* 在同一网络环境启动MySQL 合成服务和浏览器；所有子进程结束后关闭子进程。 */
 const {spawn}=require('node:child_process');
 const path=require('node:path');
 const fs=require('node:fs/promises');
@@ -29,7 +29,7 @@ async function withServer(script,port,checks){
   for(let i=0;i<60;i++){
    if(launchError)throw launchError;
    if(server.exitCode!==null)throw new Error(logs);
-   try{const health=await(await fetch(base+'/health',{signal:AbortSignal.timeout(500)})).json();if(health.database==='sqlite'){ready=true;break;}}catch{}
+   try{const health=await(await fetch(base+'/health',{signal:AbortSignal.timeout(500)})).json();if(health.database==='mysql'){ready=true;break;}}catch{}
    await delay(250);
   }
   if(!ready)throw new Error('合成服务启动失败：'+logs);

@@ -36,7 +36,9 @@
 
 用户又要求服务器部署；已创建独立 worktree `/home/admin/apps/everhere-alipay-sandbox` 和 systemd 服务 `everhere-alipay-sandbox`。服务复用现有只读 Python 依赖，但使用独立测试库、密钥和入口口令，监听 `127.0.0.1:15044`；服务器回环检查 health 200、匿名 shop 401、入口认证 shop 200。正式服务不受影响。
 
-当前仍需：`sandbox.wyever.com` DNS、对应 HTTPS 证书和反代，以及控制台上传新应用公钥、填写 AppID/商家 PID/支付宝公钥。未获得参数前服务为 awaiting configuration，不得写成付款已经重新接通。
+用户完成 DNS 后，已为 `sandbox.wyever.com` 签发独立证书（到期 2027-02-25，自动续期）并配置 Nginx。公网 HTTPS health 200、匿名 shop 401，正式站 health 200。入口认证在服务器回环验证，不通过公共隧道传送凭据。
+
+当前仍需控制台上传新应用公钥、填写 AppID/商家 PID/支付宝公钥。未获得参数前服务为 awaiting configuration，不得写成付款已经重新接通。
 
 ## 未完成与待验收
 

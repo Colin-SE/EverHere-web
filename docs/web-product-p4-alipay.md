@@ -8,7 +8,7 @@
 
 用户随后要求部署服务器。独立代码目录为 `/home/admin/apps/everhere-alipay-sandbox`，服务为 `everhere-alipay-sandbox`，数据库和密钥在该目录的 `tmp/alipay-p4/`；复用正式服务的 Python 依赖，但不使用正式数据库或正式配置。服务已启动，服务器回环 health 200、匿名商城 401、授权商城 200。
 
-计划公网入口为 `https://sandbox.wyever.com`。该地址尚需添加 A 记录 `sandbox -> 47.93.252.27`、申请子域名证书并配置 Nginx，不能当成已经可访问。原证书仅覆盖 wyever.com / www.wyever.com。正式站支付宝仍为 disabled，没有改为沙箱或真实支付。
+公网入口为 `https://sandbox.wyever.com`。A 记录 `sandbox -> 47.93.252.27` 已生效，独立证书已签发（到期 2027-02-25，并已配置自动续期），Nginx HTTPS 已代理至独立 15044 服务。公网健康 200、匿名商城 401；入口认证在服务器回环验证通过，未通过公网发送入口凭据。正式站支付宝仍为 disabled，没有改为沙箱或真实支付。
 
 新应用公钥文件是本机 `tmp/alipay-p4/upload-this-app-public-key.txt`，商户私钥只保存在受保护配置目录，不发到聊天或仓库。控制台采用 RSA2 普通公钥模式；应用公钥是上传到支付宝的文件，支付宝公钥是下载到服务端用于验签的另一把公钥。
 

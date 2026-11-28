@@ -12,3 +12,8 @@ test-results/
 outputs/
 
 tmp/
+
+# 录制稿件仅保存在本机，不提交 GitHub。
+/docs/milestone-2-scripts/
+/docs/milestone-2-storyboard.*
+/docs/milestone-2-script-review.*

@@ -1,16 +1,16 @@
 # Milestone 2 详细分镜与双语口播稿
 
-版本：2026-11-28。基于 [整体规划](milestone-2-plan.md) 及当前已核对的 Beta。目标成片 **09:35**，共 **19 个镜头段**。以下时码是剪辑安排，不是已经实测的朗读时长；录音后需按真实语速微调，最终 MP4 不超过 10 分钟。
+版本：2026-11-28，已按课程 PDF 复核修订。基于 [整体规划](milestone-2-plan.md) 及当前已核对的 Beta。目标成片 **09:35**，共 **19 个镜头段**。以下时码是剪辑安排，不是已经实测的朗读时长；录音后需按真实语速微调，最终 MP4 不超过 10 分钟。逐项检查见 [要求与逻辑链复核](milestone-2-script-review.md)。
 
 英文引文是需要朗读的正文；中文释义、操作说明、字幕和代码路径不朗读。每人独立提词稿见文末链接。三人的职责采用已确认分工，口播用“负责／主导”描述模块，不声称某个人独立编写了所有相关代码或测试。
 
-全稿英文约 941 词。按每分钟约 110–125 词朗读，正文约需 7 分 32 秒至 8 分 33 秒，其余时间用于页面操作、结果停留和交接。朗读可以与操作同时进行，不能将全部操作时长再机械相加。
+主版本英文约 944 词。按每分钟约 110–125 词朗读，正文约需 7 分 33 秒至 8 分 35 秒，其余时间用于页面操作、结果停留和交接。朗读可以与操作同时进行，不能将全部操作时长再机械相加。历史付款备用段不与主版本连读，也未重复计入主稿词数。
 
 | 成员 | 英文词数（约） | 分配画面时间 | 出场镜头 |
 |---|---:|---|---|
-| HeSicheng | 328 | 3:20 | S01、S06–S09、S16、S19 |
-| CuiChenshuo | 311 | 3:10 | S11–S15、S17 |
-| CongZheming | 302 | 3:05 | S02–S05、S10、S18 |
+| HeSicheng | 332 | 3:20 | S01、S06–S09、S16、S19 |
+| CuiChenshuo | 305 | 3:10 | S11–S15、S17 |
+| CongZheming | 307 | 3:05 | S02–S05、S10、S18 |
 
 ## 录制前布置
 
@@ -40,11 +40,20 @@
 | 修改内容 | 初始第一章标题 `Day One`；退回意见 `Please make the first chapter heading more specific.`；重提改为 `Day One: Arrival at the Coast` | 审核往返中的可见变化 |
 | 商品 | 现有 ¥1.00 沙箱测试纪念牌，数量 1；定制文字 `Moments Worth Keeping - 2026` | 独立商品与待付款订单 |
 | 地址 | `Sandbox Buyer`、`13800000000`、`Test Region`、`Sandbox address - no delivery` | 只作实体商品沙箱收货信息 |
-| 付款证据 P1 | 已完成的 ¥1.00 沙箱 paid 订单及对应通知、入账事件 | 展示真实发生过的沙箱验收结果 |
+| 演示订单 O1 | 在 S12 创建的 ¥1.00 沙箱订单；字幕显示同一个短 ID | 主版本在 S12–S14 展示同一订单的创建、付款和通知入账 |
+| 备用证据 P1 | 已完成的 ¥1.00 沙箱 paid 订单及对应通知、入账事件 | 历史补充证据；不能替代 O1 的付款结果 |
 
 R2、R3 在录制前准备好；R1 在镜头中操作。两章回忆录通常至少含封面与两章正文，适合展示“样张页数少于成品”的区别。具体页数以生成结果为准。另预备一份同内容的 ready 回忆录用于预演和异常恢复，使用备用时明确标注该对象，不冒充当前生成结果。
 
-P1 是此前完成的验收证据。若它不属于当前演示买家，就展示标有 `Earlier sandbox acceptance` 的独立验收片段；不把它说成刚刚创建的订单。默认稿不要求再次付款。若重录完整付款，需使用同一笔订单的真实前后画面并重新核对通知，收银台等待仍计入成片时长。
+主版本需要在录制素材时完成 O1 的沙箱付款，并保存同一订单的创建页、收银台、返回页及只读交易证据。S12–S14 都标出相同的短订单 ID；交易表通过 `order_id` 关联 O1，支付宝商户单号对应 `merchant_no`，两个标识用途不同，不要求两者字符串相同。录制和付款尚需执行，本次文稿修订没有新增交易。
+
+如果暂时不能补录同单付款，可保留 P1 的历史验收片段，使用 S14 后附的备用口播并标 `Earlier sandbox acceptance`。这可以证明之前完成过渠道验收，但不能证明镜头中新建的 O1 已付款。不要把两笔订单剪成同一笔；要加强相关任务的一致性证据，优先使用完整同单素材。
+
+### 两条任务线如何衔接
+
+- **回忆录线：**同一用户的 R1/R2 → 明确授权 → M1 修订 1 → 退回 → M1 修订 2 → 审核通过 → 生成 → 该修订的样张。R3 始终未选入。UI、审核与 PDF 共用这条材料链。
+- **商品线：**同一网站账号的独立定制任务 → O1 → 签名收银台请求 → 该商户单号的通知／查询 → O1 的 paid 状态及一次入账。普通纪念牌不依赖 M1，也不把纪念牌付款解释为完整回忆录下载权限。
+- **验证线：**用户需求／风险 → 对应设计 → 操作及实现 → 预期结果 → 已有实际结果 → 对设计的评价和证据边界。S16–S18 分别回扣前面的审核、付款和界面行为。
 
 ### 镜头总表
 
@@ -63,7 +72,7 @@ P1 是此前完成的验收证据。若它不属于当前演示买家，就展�
 | S11 | 05:05–05:40 | CuiChenshuo | 浏览器、API、MySQL 的连接 |
 | S12 | 05:40–06:15 | CuiChenshuo | 独立商品定制与服务端订单快照 |
 | S13 | 06:15–06:50 | CuiChenshuo | 支付地址、签名请求与可信状态 |
-| S14 | 06:50–07:20 | CuiChenshuo | 先前沙箱成功订单与通知证据 |
+| S14 | 06:50–07:20 | CuiChenshuo | 同一订单付款结果与通知证据 |
 | S15 | 07:20–07:45 | CuiChenshuo | 幂等、重复通知与库存 |
 | S16 | 07:45–08:15 | HeSicheng | 审核和修订测试 |
 | S17 | 08:15–08:45 | CuiChenshuo | 支付通知测试与 MySQL CI |
@@ -80,11 +89,11 @@ P1 是此前完成的验收证据。若它不属于当前演示买家，就展�
 
 **英文口播**
 
-> Hello, we are the Everhere team. I am HeSicheng, and I coordinated requirements and memoir review design. CuiChenshuo led server and data integration. CongZheming led responsive interfaces and output layout. We will demonstrate how our Beta connects private memories, reviewed memoirs, and a custom shop.
+> Hello, we are the Everhere team. I am HeSicheng, responsible for requirements and memoir review design. CuiChenshuo led server and data integration; CongZheming led responsive interfaces and output layout. Everhere helps users turn private memories into reviewed memoirs and personalise keepsakes through one website.
 
 **中文释义**
 
-大家好，我们是 Everhere 团队。我是 HeSicheng，负责需求协调和回忆录审核设计。CuiChenshuo 主导服务器与数据集成，CongZheming 主导响应式界面与输出排版。我们将演示 Beta 如何连接私人记录、经审核制作的回忆录和定制商城。
+大家好，我们是 Everhere 团队。我是 HeSicheng，负责需求与回忆录审核设计。CuiChenshuo 主导服务器与数据集成，CongZheming 主导响应式界面与输出排版。Everhere 帮助用户在同一网站把私人记忆整理为经审核制作的回忆录，并定制纪念品。
 
 **画面证据与剪辑**
 
@@ -96,7 +105,7 @@ P1 是此前完成的验收证据。若它不属于当前演示买家，就展�
 
 1. 保持普通用户会话；显示首页和桌面侧边导航。
 2. 鼠标依次指向记录、回忆录与商城入口，不逐个点开所有页面。
-3. 打开新建记录入口，停在编辑表单。
+3. 指向新建记录入口，S03 再打开并创建，避免同一操作重复演示。
 
 **英文口播**
 
@@ -161,15 +170,15 @@ P1 是此前完成的验收证据。若它不属于当前演示买家，就展�
 
 **英文口播**
 
-> The same record supports different views, rather than creating a separate copy for each screen. Dates also preserve their precision: a memory known only by month is not given an invented day. At a narrow viewport, the layout adapts so controls and text remain usable. These choices connect the interface to the underlying data requirements.
+> The same record feeds each view, preserving its ID and date precision. A month-only memory is not given an invented day. For small screens, CSS media queries change the navigation and column layout while the same data and actions remain available. I chose this approach so users can continue the same task across screen sizes without creating separate records.
 
 **中文释义**
 
-不同视图引用同一条记录，而不是分别复制内容。日期保留原有精度，只知道月份的记录不会被编造出某一天。在窄屏下，布局相应调整，让文字和控件仍可使用。这些选择把界面行为与数据需求联系起来。
+不同视图使用同一条记录，保留 ID 和日期精度，只知道月份的记录不会被编造日期。小屏幕下 CSS 媒体查询调整导航和列布局，数据与操作仍保持可用，使用户能跨屏幕尺寸继续同一任务，无需另建记录。
 
 **画面证据与剪辑**
 
-字幕可标 `One record, multiple views`、`390 × 844`。只按实际页面展示日历中的记录；月精度记录不必强行落到某个日历格。无横向溢出由后面的浏览器测试说明。
+字幕可标 `One record, multiple views`、`390 × 844`。只按实际页面展示日历中的记录；月精度记录不必强行落到某个日历格。短暂指向 `app/static/css/native.css` 的窄屏导航规则，或在对应工作台页面指向 `workspace.css` 的 `.split` 单列规则，页面与代码匹配。无横向溢出由后面的浏览器测试说明。
 
 ## S06 | 02:35-03:10 | HeSicheng | 选材与明确授权
 
@@ -201,11 +210,11 @@ P1 是此前完成的验收证据。若它不属于当前演示买家，就展�
 
 **英文口播**
 
-> The administrator claims a review task before accessing the authorised material. I chose this assignment model to make responsibility clear and limit access to the selected revision. The submission is frozen, so later edits to the private album do not silently change what was reviewed. This connects user consent to a stable production input.
+> The administrator claims this submitted revision. The server records the reviewer ID and checks it on later review requests. I chose assignment to make responsibility clear and limit access to authorised material. The frozen snapshot keeps the selected text and photos stable, so album edits cannot silently change the production input. This protects consent and consistency across the workflow.
 
 **中文释义**
 
-管理员先领取审核任务，再访问获授权材料。我选择任务分配模式，是为了明确责任并限制对选定修订的访问。提交材料被冻结，因此相册之后的修改不会悄悄改变已审核内容，让授权对应稳定的制作输入。
+管理员领取这次提交的修订，服务器记录审核员 ID，并在后续审核请求中检查。我选择分配机制来明确责任和限制授权范围。冻结快照保留选定文字和照片，使相册后续编辑不会悄悄改变制作输入，从而保护授权与流程一致性。
 
 **画面证据与剪辑**
 
@@ -261,11 +270,11 @@ P1 是此前完成的验收证据。若它不属于当前演示买家，就展�
 
 **英文口播**
 
-> For the output layout, I focused on readable chapters, consistent spacing, and photos that keep their proportions. The preview is a separate sample document with fewer pages than the complete memoir. This lets users inspect the layout while preserving the boundary between a preview and full delivery.
+> I chose a fixed PDF layout for consistent chapters and readable photos. The renderer takes the approved snapshot and scales each image proportionally into the page area. A separate sample copies fewer pages than the complete memoir. This keeps preview output consistent with the reviewed material.
 
 **中文释义**
 
-输出排版注重章节可读性、一致的间距和不变形的照片。预览是独立样张文档，页数少于完整回忆录，让用户检查版式，同时保持预览与完整交付之间的边界。
+我选择固定 PDF 版式来保持章节一致和照片可读。渲染器读取已批准的快照，按比例把照片缩放到页面区域；独立样张只复制少于完整成品的页数，使预览输出与审核材料保持一致。
 
 **画面证据与剪辑**
 
@@ -276,16 +285,16 @@ P1 是此前完成的验收证据。若它不属于当前演示买家，就展�
 **画面与操作**
 
 1. 展示简图 `Browser → Flask API → MySQL`，下方补 `Alipay sandbox → Verified notification → Order state`。
-2. 开发者工具 Network 展示一个实际记录或回忆录请求，鼠标指出 URL、状态码和返回数据中的对象 ID；隐藏 Cookie 和令牌。
-3. 切到对应 API／模型，强调同一对象标识的连接。
+2. 开发者工具 Network 展示 R1 的实际记录读取响应，指出 URL、状态码和返回的记录 ID；隐藏 Cookie 和令牌。
+3. 切到 M1 冻结材料中对应的 `recordId`，显示其与 R1 ID 相同，再指向 API／模型中的归属检查。区分记录 ID、稿件 ID 和修订 ID，各自用途不同。
 
 **英文口播**
 
-> I am CuiChenshuo, and I led server and data integration. Browser actions call Flask APIs, which validate ownership and store state in MySQL. The album, memoir revisions, and orders are connected through stable identifiers. The server checks the request again, because hiding a button in the interface is not enough to protect private data.
+> I am CuiChenshuo, and I led server and data integration. This API response carries the same record ID used by the memoir snapshot. Flask checks ownership before MySQL stores the state. That connects CongZheming's input screen to HeSicheng's review workflow. Server checks are necessary because a request can be sent directly, without using the visible controls.
 
 **中文释义**
 
-我是 CuiChenshuo，负责服务器与数据集成。浏览器操作调用 Flask API，接口检查归属并将状态保存到 MySQL。相册、回忆录修订和订单通过稳定标识连接。服务器会再次检查请求，因为只隐藏界面按钮并不足以保护私人数据。
+我是 CuiChenshuo，负责服务器与数据集成。API 响应里的记录 ID 与回忆录快照使用的来源记录 ID 相同，Flask 检查归属后再将状态存入 MySQL，把 CongZheming 的输入界面与 HeSicheng 的审核流程连接起来。请求可以绕过界面直接发送，因此必须进行服务器检查。
 
 **画面证据与剪辑**
 
@@ -301,55 +310,65 @@ P1 是此前完成的验收证据。若它不属于当前演示买家，就展�
 
 **英文口播**
 
-> The shop also supports ordinary keepsakes without requiring a memoir. When this order is created, the server checks the current product and variant versions, calculates the price, and stores the confirmed customisation. I used an order snapshot so later catalogue changes do not rewrite what the buyer agreed to purchase. The interface and stored order therefore describe the same transaction.
+> The same user can also customise a keepsake without creating a memoir. For this order, the server checks product versions, calculates the price, and freezes the selected options. I chose a snapshot because later catalogue changes must not rewrite an agreed purchase. We now follow this same order from creation to confirmed payment.
 
 **中文释义**
 
-商城支持独立纪念品，不要求先有回忆录。创建订单时，服务器检查商品和规格版本、计算价格并保存确认的定制内容。我使用订单快照，让目录之后的变化不会改写买家已经确认的购买内容，界面与保存的订单对应同一笔交易。
+同一用户也可以独立定制纪念品，不要求先创建回忆录。服务器检查商品版本、计算价格并冻结选项；订单快照保证目录后续变化不会改写已确认的购买。接下来跟踪这同一笔订单从创建到确认付款的过程。
 
 **画面证据与剪辑**
 
-对应 `app/api/shop.py::create_order`。这个新订单仅用来展示创建和付款入口；后面的既有成功订单是另一份已完成证据，必须通过字幕和口播明确切换。
+对应 `app/api/shop.py::create_order`。本段订单记为 O1，保存其 ID、金额、定制文字及后续商户单号，S13、S14 使用同一笔订单。若只能使用历史 P1，最后一句改为 `An earlier sandbox acceptance separately verifies the payment connection.`，并采用 S14 的备用口播。
 
 ## S13 | 06:15-06:50 | CuiChenshuo | 支付请求与可信结果
 
 **画面与操作**
 
-1. 展示新订单的收货地址表单和付款按钮，填入合成地址；默认录制无需再次完成付款。
-2. 切到 `Alipay.checkout_url`，指出金额、商户单号、通知地址和 RSA2 请求签名；使用代码画面，不展示带签名参数的完整个人收银台 URL。
-3. 切 `commerce.receive`，高亮先验签、后核对交易上下文的顺序。
+1. 展示 O1 的收货地址和付款按钮，填入合成地址，点击进入沙箱收银台；保留金额及商户单号的对应关系。
+2. 使用同一订单的真实付款素材，密码输入和长等待剪去。可在代码画面播放口播，减少无信息等待；不要展示带签名参数的完整收银台 URL。
+3. 切 `commerce.receive`，高亮先验签、后核对交易上下文的顺序。O1 的返回和入账结果放在 S14。
 
 **英文口播**
 
-> Physical orders require a delivery address before checkout. The payment request uses the stored amount and a signed merchant order reference. A browser redirect alone does not prove payment. The server verifies Alipay's signature and checks the application, seller, order, and amount before accepting a notification or a query result as confirmation.
+> Here I start sandbox checkout for the same order. Physical items require an address. The signed request uses the stored amount and merchant reference. Because a browser redirect can be forged or interrupted, the server accepts payment only after verifying a notification or query response and checking the application, seller, order, and amount.
 
 **中文释义**
 
-实体订单付款前需要收货地址。支付请求使用已保存的金额和带签名的商户订单引用。浏览器跳回本身不能证明付款成功。服务器验证支付宝签名，并核对应用、商家、订单和金额，再接受通知或查单结果作为确认。
+这里为同一订单启动沙箱付款，实体商品需要地址。签名请求使用保存的金额和商户引用。由于浏览器跳回可能被伪造或中断，服务器仅在验签并核对应用、商家、订单和金额后，才接受通知或查询响应作为付款确认。
 
 **画面证据与剪辑**
 
-对应 `app/services/alipay.py::checkout_url`、`verify_notice`，以及 `app/services/commerce.py::receive`、`query_trade`。如果改为录制实际收银台，登录和付款使用沙箱买家账号，口播与同一订单的画面对应。
+对应 `app/services/alipay.py::checkout_url`、`verify_notice`，以及 `app/services/commerce.py::receive`、`query_trade`。登录和付款使用沙箱买家账号，口播与同一订单的画面对应。若无法补录，只保留地址与代码解释，并在备用口播中明确历史验收属于另一笔订单。
 
-## S14 | 06:50-07:20 | CuiChenshuo | 已完成付款的证据
+## S14 | 06:50-07:20 | CuiChenshuo | 同一订单付款结果与通知证据
 
 **画面与操作**
 
-1. 明确切入带 `Earlier sandbox acceptance` 字幕的 P1 片段。
-2. 展示已付款订单 ¥1.00、沙箱标记和付款事件时间线；如本人无权访问 P1，用该订单所属会话录制单独素材。
-3. 展示只读核对结果中同一订单的 `paid` 状态，以及 `checkout`、`alipay_notice`、`paid` 事件。只保留必要字段。
+1. 从 O1 收银台返回 O1 详情，保留同一短订单 ID、¥1.00 和沙箱标记。
+2. 展示 O1 已付款状态和付款事件时间线；在数据库结果中以 `order_id` 找到同一订单，并展示其 `merchant_no` 与交易证据相符。
+3. 展示这笔订单的 `checkout`、`alipay_notice`、`paid` 事件。若在录制前已完成流程，可按原始顺序使用同一订单的预录素材，标明相关片段已预录。
 
 **英文口播**
 
-> This is an earlier completed sandbox acceptance order. It shows a payment of one yuan, and the database records both the Alipay notification and the paid event. These results confirm that the external sandbox and our order state were connected successfully. Refunds and physical delivery are separate checks and are not claimed by this result.
+> We return to the same order, now marked paid for one yuan. Its merchant reference matches the transaction record, and the event list contains the verified Alipay notification and paid event. This connects the checkout request to the stored result. The page, database, and payment evidence now describe the same transaction.
 
 **中文释义**
 
-这是此前完成的一笔沙箱验收订单，金额一元，数据库记录了支付宝通知和付款入账事件。这些结果证明外部沙箱与本站订单状态已成功连接。退款和实际交付属于独立检查，这个结果不代表它们也已完成。
+回到同一笔订单，它现已标为一元已付款。商户引用与交易记录一致，事件列表包含已验证的支付宝通知和入账事件，把收银台请求与保存结果连接起来。页面、数据库和支付证据现在对应同一笔交易。
 
 **画面证据与剪辑**
 
-已有证据：一笔 ¥1.00 paid 交易，`checkout`、`alipay_notice`、`paid` 各一条，库存 12→11。库存变化属于这笔验收当时的核对，不要求录制当天全库仍是 12→11。不要把当前全库事件总数当成这笔订单的事件数。
+新版 O1 同单付款素材尚待录制，不能用已有 P1 的结果证明 O1 入账。已有 P1 证据为一笔 ¥1.00 paid 交易，`checkout`、`alipay_notice`、`paid` 各一条，库存 12→11；该库存变化只描述验收当时。不要把当前全库事件总数当成这笔订单的事件数。
+
+**备用口播：仅在使用历史 P1 时替换本段，不与主版本连读**
+
+This is an earlier completed sandbox acceptance order. It separately verifies a one-yuan payment, a verified notification, and a paid event. It demonstrates the external connection, but it is not the newly created order shown earlier. The new order still needs its own payment confirmation.
+
+备用片段必须标 `Earlier sandbox acceptance`，S12 的结尾同步改为历史证据表述，S13 不声称录下了 O1 的真实付款。两种剪辑版本择一，不混用。
+
+历史方案中，S13 整段改读以下解释性口播：
+
+Physical orders require an address before checkout. A signed request uses the stored amount and merchant reference. A browser redirect alone cannot confirm payment. The server verifies a notification or query response and checks the application, seller, order, and amount. The next clip shows a separate earlier sandbox acceptance.
 
 ## S15 | 07:20-07:45 | CuiChenshuo | 幂等设计
 
@@ -381,11 +400,11 @@ P1 是此前完成的验收证据。若它不属于当前演示买家，就展�
 
 **英文口播**
 
-> For my review design, our strategy focuses on excessive access and decisions applied to the wrong revision. The test follows submission, return, and resubmission. It expects unauthorised access to fail, the earlier snapshot to remain unchanged, and an outdated decision to be rejected. The passing assertions support the privacy and revision rules.
+> I test across role and revision changes because permissions can fail at those boundaries. The expected outcomes are rejected unauthorised access, an unchanged earlier snapshot, and rejection of an outdated review decision. The assertions pass. This supports the design choice to freeze submissions and check the active revision before accepting a decision.
 
 **中文释义**
 
-审核流程的关键风险是越权访问，以及审核决定应用到错误修订。测试走过提交、退回和重提，预期未授权访问失败、旧快照不变、过期决定被拒绝。通过的断言支持前面演示的隐私和修订规则。
+测试跨角色和修订变化，因为权限容易在这些边界出问题。预期未授权访问被拒绝、旧快照不变、过期决定被拒绝；断言通过，支持冻结提交和接受决定前检查当前修订的设计。
 
 **画面证据与剪辑**
 
@@ -401,11 +420,11 @@ P1 是此前完成的验收证据。若它不属于当前演示买家，就展�
 
 **英文口播**
 
-> For my integration work, our strategy covers incorrect and repeated external messages. The test sends an incorrect amount and repeats a valid signed notification. We expect rejection of the wrong amount and only one paid event. These assertions pass in MySQL. The separate sandbox acceptance checks the external connection.
+> Payment notifications may be repeated or inconsistent, so my strategy tests both conditions. A wrong amount must be rejected; repeating a valid notice must leave one paid event. Both assertions pass in MySQL. This supports signature and context checks plus event deduplication. The separate sandbox run checks the real channel connection.
 
 **中文释义**
 
-支付测试发送错误金额，并重复发送有效签名通知。预期错误金额被拒绝，最终只保留一次付款入账事件。这些断言在 MySQL 测试套件中通过。受控网关测试解释失败处理，独立沙箱订单则提供外部连接证据。
+支付通知可能重复或不一致，因此测试这两种条件。预期错误金额被拒绝、重复有效通知只保留一次入账，两项断言在 MySQL 中通过，支持验签、交易上下文核对和事件去重的设计；独立沙箱流程验证真实渠道连接。
 
 **画面证据与剪辑**
 
@@ -421,11 +440,11 @@ P1 是此前完成的验收证据。若它不属于当前演示买家，就展�
 
 **英文口播**
 
-> For my interface work, our strategy covers interrupted editing and narrow screens because these affect everyday use. The browser checks expect text to remain during a failed save, saving to succeed after recovery, and no horizontal overflow at 390 pixels. The passing results support the feedback and layout decisions shown earlier.
+> I test interrupted saves because a failed request could otherwise lose input, and narrow screens because overflow can hide controls. The browser checks retain the text, save after recovery, and report no horizontal overflow at 390 pixels. These results support keeping the form during failure and adapting the layout, within these tested conditions.
 
 **中文释义**
 
-界面浏览器检查会在编辑中断网再恢复，预期文字仍保留、恢复后保存成功；同时检查窄屏是否横向溢出。观察结果支持可用的恢复和响应式布局，而不只是证明页面能够打开。
+测试中断保存，是因为请求失败可能导致输入丢失；测试窄屏，是因为溢出可能隐藏控件。浏览器检查中正文保留、恢复后保存成功，390 像素下无横向溢出；这些结果在所测条件下支持保留表单和适配布局的设计。
 
 **画面证据与剪辑**
 
@@ -465,13 +484,13 @@ P1 是此前完成的验收证据。若它不属于当前演示买家，就展�
 
 英文稿适合约 110–125 词/分钟的清楚语速。按真实录音检查每段，不因稿件词数达标就判定视频已符合时长。若某段超过时码，优先减少停顿、重复截图和无操作等待；仍超时则使用下列删减，不删除任何成员的姓名、个人贡献、设计理由或测试结果解释。
 
-- S05 可删 `These choices connect the interface to the underlying data requirements.`
-- S07 可删 `This connects user consent to a stable production input.`
-- S12 可删 `The interface and stored order therefore describe the same transaction.`
+- S05 可删 `A month-only memory is not given an invented day.`，日期精度仍在首句和画面中体现。
+- S07 可删 `This protects consent and consistency across the workflow.`，保留前面的审核员检查和快照机制。
+- S12–S14 保留同一订单的衔接句；优先压缩输入和无信息等待，不删除证明前后对应的画面。
 - S15 可删 `The tests check this beyond the successful path.`，但保留稳定请求编号和事件去重说明。
 - S19 可删 `Each part contributes to a consistent user journey.`
 
-如果现场需要额外展示收银台，不在原稿后再增加一整段；使用 S13、S14 的时间替换相应素材，保留验签与确认结果的解释。最终必须实际核对导出 MP4 的时长。
+收银台素材安排在 S13、S14 内，不在原稿后再增加一整段；保留验签和同单确认的解释。收银台登录、密码输入及长等待可以剪去，不能剪掉证明订单对应关系的画面。最终必须实际核对导出 MP4 的时长。
 
 ### 常用词读法提示
 
@@ -491,12 +510,13 @@ P1 是此前完成的验收证据。若它不属于当前演示买家，就展�
 
 ### 只读付款证据
 
-可通过已有受控数据库连接查看下列字段。用实际 P1 订单 ID 替换占位内容，并只展示该订单的结果；不要把数据库连接口令、SSH 凭据或其他订单资料录入画面。此 SQL 只有 SELECT 和本次连接变量赋值，不修改订单。
+可通过已有受控数据库连接查看下列字段。主版本用 O1 的实际订单 ID；历史备用版本才用 P1。只展示所选订单的结果，不把数据库连接口令、SSH 凭据或其他订单资料录入画面。此 SQL 只有 SELECT 和本次连接变量赋值，不修改订单。
 
 ```sql
 SET @demo_order_id = '替换为已完成的沙箱验收订单 UUID';
 
-SELECT o.id, o.state, t.environment, t.amount_cents,
+SELECT o.id, o.state, t.merchant_no, t.provider_no,
+       t.environment, t.amount_cents,
        t.paid_at, t.refund_state, t.fulfillment
 FROM shop_orders AS o
 JOIN shop_order_trades AS t ON t.order_id = o.id
@@ -508,7 +528,7 @@ WHERE order_id = @demo_order_id
 GROUP BY kind;
 ```
 
-数据库中的付款审计时间按 UTC 读取时，说明与网页显示的北京时间存在时区换算，不将其误说为交易不一致。现有该笔支付审计为 UTC 2026-11-28 02:36:29，对应北京时间 10:36:29。
+数据库中的付款审计时间按 UTC 读取时，说明与网页显示的北京时间存在时区换算，不将其误说为交易不一致。历史 P1 的审计为 UTC 2026-11-28 02:36:29，对应北京时间 10:36:29；新版 O1 使用其自身的实际时间。
 
 ### 每人最少准备的实现证据
 

@@ -2,15 +2,15 @@
 
 职责：需求协调与回忆录审核设计。版本：2026-11-28。
 
-本稿按成片出场顺序排列。只朗读每段英文正文，不读标题、时码和画面提示。合计约 **328 个英文词**，分配画面时间 **3:20**；其中包含操作与结果展示。时间为计划，不是已录制时长。
+本稿按成片出场顺序排列。只朗读每段英文正文，不读标题、时码和画面提示。合计约 **332 个英文词**，分配画面时间 **3:20**；其中包含操作与结果展示。时间为计划，不是已录制时长。
 
 完整操作、中文释义和证据要求见 [详细分镜](../milestone-2-storyboard.md)。三人的职责按团队已确认分工表述；录制前核对个人实际参与内容。
 
 ## S01 | 00:00–00:25 | 项目与团队
 
-画面提示：项目与团队。预计 25 秒，约 45 词。
+画面提示：项目与团队。预计 25 秒，约 44 词。
 
-Hello, we are the Everhere team. I am HeSicheng, and I coordinated requirements and memoir review design. CuiChenshuo led server and data integration. CongZheming led responsive interfaces and output layout. We will demonstrate how our Beta connects private memories, reviewed memoirs, and a custom shop.
+Hello, we are the Everhere team. I am HeSicheng, responsible for requirements and memoir review design. CuiChenshuo led server and data integration; CongZheming led responsive interfaces and output layout. Everhere helps users turn private memories into reviewed memoirs and personalise keepsakes through one website.
 
 ## S06 | 02:35–03:10 | 选材与明确授权
 
@@ -20,9 +20,9 @@ My review design starts with a privacy requirement: users choose what a producti
 
 ## S07 | 03:10–03:45 | 任务领取与冻结修订
 
-画面提示：任务领取与冻结修订。预计 35 秒，约 54 词。
+画面提示：任务领取与冻结修订。预计 35 秒，约 59 词。
 
-The administrator claims a review task before accessing the authorised material. I chose this assignment model to make responsibility clear and limit access to the selected revision. The submission is frozen, so later edits to the private album do not silently change what was reviewed. This connects user consent to a stable production input.
+The administrator claims this submitted revision. The server records the reviewer ID and checks it on later review requests. I chose assignment to make responsibility clear and limit access to authorised material. The frozen snapshot keeps the selected text and photos stable, so album edits cannot silently change the production input. This protects consent and consistency across the workflow.
 
 ## S08 | 03:45–04:20 | 退回与重新提交
 
@@ -40,7 +40,7 @@ Approval and generation are separate actions in this Beta. After approval, the a
 
 画面提示：审核测试的目的与结果。预计 30 秒，约 52 词。
 
-For my review design, our strategy focuses on excessive access and decisions applied to the wrong revision. The test follows submission, return, and resubmission. It expects unauthorised access to fail, the earlier snapshot to remain unchanged, and an outdated decision to be rejected. The passing assertions support the privacy and revision rules.
+I test across role and revision changes because permissions can fail at those boundaries. The expected outcomes are rejected unauthorised access, an unchanged earlier snapshot, and rejection of an outdated review decision. The assertions pass. This supports the design choice to freeze submissions and check the active revision before accepting a decision.
 
 ## S19 | 09:15–09:35 | 当前边界与结束
 

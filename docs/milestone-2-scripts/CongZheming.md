@@ -2,7 +2,7 @@
 
 职责：响应式界面与输出排版。版本：2026-11-28。
 
-本稿按成片出场顺序排列。只朗读每段英文正文，不读标题、时码和画面提示。合计约 **302 个英文词**，分配画面时间 **3:05**；其中包含操作与结果展示。时间为计划，不是已录制时长。
+本稿按成片出场顺序排列。只朗读每段英文正文，不读标题、时码和画面提示。合计约 **307 个英文词**，分配画面时间 **3:05**；其中包含操作与结果展示。时间为计划，不是已录制时长。
 
 完整操作、中文释义和证据要求见 [详细分镜](../milestone-2-storyboard.md)。三人的职责按团队已确认分工表述；录制前核对个人实际参与内容。
 
@@ -26,20 +26,20 @@ A failed request should not erase the user's work. Here the connection is interr
 
 ## S05 | 01:55–02:35 | 日期与响应式
 
-画面提示：日期与响应式。预计 40 秒，约 55 词。
+画面提示：日期与响应式。预计 40 秒，约 59 词。
 
-The same record supports different views, rather than creating a separate copy for each screen. Dates also preserve their precision: a memory known only by month is not given an invented day. At a narrow viewport, the layout adapts so controls and text remain usable. These choices connect the interface to the underlying data requirements.
+The same record feeds each view, preserving its ID and date precision. A month-only memory is not given an invented day. For small screens, CSS media queries change the navigation and column layout while the same data and actions remain available. I chose this approach so users can continue the same task across screen sizes without creating separate records.
 
 ## S10 | 04:40–05:05 | PDF 输出与样张
 
-画面提示：PDF 输出与样张。预计 25 秒，约 47 词。
+画面提示：PDF 输出与样张。预计 25 秒，约 46 词。
 
-For the output layout, I focused on readable chapters, consistent spacing, and photos that keep their proportions. The preview is a separate sample document with fewer pages than the complete memoir. This lets users inspect the layout while preserving the boundary between a preview and full delivery.
+I chose a fixed PDF layout for consistent chapters and readable photos. The renderer takes the approved snapshot and scales each image proportionally into the page area. A separate sample copies fewer pages than the complete memoir. This keeps preview output consistent with the reviewed material.
 
 ## S18 | 08:45–09:15 | 浏览器测试与恢复
 
-画面提示：浏览器测试与恢复。预计 30 秒，约 51 词。
+画面提示：浏览器测试与恢复。预计 30 秒，约 53 词。
 
-For my interface work, our strategy covers interrupted editing and narrow screens because these affect everyday use. The browser checks expect text to remain during a failed save, saving to succeed after recovery, and no horizontal overflow at 390 pixels. The passing results support the feedback and layout decisions shown earlier.
+I test interrupted saves because a failed request could otherwise lose input, and narrow screens because overflow can hide controls. The browser checks retain the text, save after recovery, and report no horizontal overflow at 390 pixels. These results support keeping the form during failure and adapting the layout, within these tested conditions.
 
 录音结束后回听姓名、关键词和最后一句是否清楚；按镜头编号交付音频，便于与另外两位的段落合并。

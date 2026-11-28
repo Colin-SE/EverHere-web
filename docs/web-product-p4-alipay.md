@@ -1,8 +1,8 @@
 # P4 支付宝网页交易
 
-## 当前状态 2026-11-27
+## 当前状态 2026-11-28
 
-用户确认支付宝沙箱此前已验证可用。清空并重新克隆项目后，旧本机配置、密钥和测试库已不存在；本次已重新生成 RSA2 密钥并校验公私钥匹配，安装锁定依赖，重建独立测试服务。新应用公钥须在原沙箱应用中重新上传；AppID、沙箱商家 PID 和支付宝公钥尚待控制台提供。
+用户确认支付宝沙箱此前已验证可用。清空并重新克隆项目后，本次重新生成 RSA2 密钥并重建独立测试服务。2026-11-28 用户完成控制台配置并提供 AppID、商家 PID 和支付宝公钥，已接入服务器；本机和服务器对新生成的不存在订单号发起只读查询，均验签通过，返回 `40004 / ACQ.TRADE_NOT_EXIST`。这证明当前配置可签名请求并验证渠道响应，不代表已经付款或完成退款。
 
 正式站、本机普通环境、本机沙箱、服务器沙箱和自动化验收已统一 MySQL，各自使用独立库名和账号，见 [数据库环境](mysql-environments.md)。两个新建沙箱原有 SQLite 的 31 张表、6 条业务资料已迁入各自 MySQL 并逐表校验；时间按现有 MySQL 字段的秒精度保存。
 
@@ -10,7 +10,7 @@
 
 服务器独立目录 `/home/admin/apps/everhere-alipay-sandbox`，systemd 服务 `everhere-alipay-sandbox`，数据库 `life_album_alipay_sandbox`。本机沙箱为 `life_album_local_sandbox`。密钥和连接配置放各自目录 `tmp/alipay-p4/`，不会提交仓库；服务器复用正式服务的 Python 依赖。
 
-新应用公钥为本机 `tmp/alipay-p4/upload-this-app-public-key.txt`，商户私钥只保存在受保护目录。控制台采用 RSA2 普通公钥模式；应用公钥上传给支付宝，支付宝公钥保存到服务端用于验签。新配置仍缺 AppID、商家 PID 和支付宝公钥，当前服务为 awaiting configuration，不能写成真实渠道付款已经恢复。
+新应用公钥为本机 `tmp/alipay-p4/upload-this-app-public-key.txt`，商户私钥只保存在受保护目录。控制台采用 RSA2 普通公钥模式；应用公钥上传给支付宝，支付宝公钥保存到服务端用于验签。服务器已重启并输出 `Alipay configured`，当前网关为 `https://openapi-sandbox.dl.alipaydev.com/gateway.do`，等待沙箱买家实际付款、通知及退款验收。只读查单证据保存在各自忽略的 `tmp/alipay-p4/config-probe.json`。
 
 ## 配置与逐项验收
 

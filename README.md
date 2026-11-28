@@ -11,6 +11,7 @@ Everhere 提供私人相册、回忆录审核制作和独立文创商城。当�
 - [Milestone 2 整体规划与三人分工](docs/milestone-2-plan.md)
 - [共用身份与同步发布](docs/public-album-sync-release.md)
 - [支付宝沙箱与部署状态](docs/web-product-p4-alipay.md)
+- [两站统一商品与配图](docs/shop-catalog-20261128.md)
 
 ## 当前入口
 

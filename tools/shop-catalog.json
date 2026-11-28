@@ -1,0 +1,50 @@
+{
+  "catalogVersion": "2026-11-28",
+  "products": [
+    {
+      "key": "digital-memory-album",
+      "name": "时光电子相册",
+      "description": "把自己的文字与照片整理成可以珍藏的电子相册，以固定版式 PDF 呈现封面、章节与照片。\n下单前请先在回忆录中完成选材、审核与制作，再选择本人已完成的版本。电子版按订单付款及下载权限提供，不邮寄实物。\n当前为 Beta 演示商品与演示标价，配图为版式示意。",
+      "image": "digital-album.webp",
+      "variant": {
+        "name": "高清 PDF 电子版",
+        "kind": "memoir_digital",
+        "priceCents": 1990,
+        "textRequired": false,
+        "photoRequired": false
+      }
+    },
+    {
+      "key": "personal-commemorative-medal",
+      "name": "在场纪念奖牌",
+      "description": "为旅行、毕业或一段坚持留下专属纪念。香槟金奖牌与鼠尾草绿绶带，记录属于自己的重要时刻。\n请在定制文字中填写姓名、纪念日期与短句；照片可选，上传时需确认授权。订单会保留确认后的款式和定制内容。\n当前为 Beta 演示商品与演示标价，制作及配送采用演示流程，配图为商品效果示意。",
+      "image": "commemorative-medal.webp",
+      "variant": {
+        "name": "香槟金奖牌＋绿色绶带",
+        "kind": "medal",
+        "priceCents": 3990,
+        "textRequired": true,
+        "photoRequired": false
+      }
+    },
+    {
+      "key": "discipline-100-day-certificate",
+      "name": "自律100天纪念证书",
+      "description": "把一百天的坚持留在纸上。米白证书、金色桂冠与原木色展示框，为自己的习惯养成留下纪念。\n请在定制文字中填写姓名、挑战项目、完成日期与纪念寄语；这是个人挑战的纸质定制纪念品，按用户确认的文字排版，不自动核验打卡或生成电子证书。\n当前为 Beta 演示商品与演示标价，制作及配送采用演示流程，配图为商品效果示意。",
+      "image": "discipline-certificate.webp",
+      "variant": {
+        "name": "A4 纸质证书＋原木色展示框",
+        "kind": "gift",
+        "priceCents": 990,
+        "textRequired": true,
+        "photoRequired": false
+      }
+    }
+  ],
+  "coverOnly": [
+    {
+      "name": "P4 沙箱测试纪念牌",
+      "image": "commemorative-medal.webp"
+    }
+  ]
+}

@@ -10,7 +10,15 @@
 
 服务器独立目录 `/home/admin/apps/everhere-alipay-sandbox`，systemd 服务 `everhere-alipay-sandbox`，数据库 `life_album_alipay_sandbox`。本机沙箱为 `life_album_local_sandbox`。密钥和连接配置放各自目录 `tmp/alipay-p4/`，不会提交仓库；服务器复用正式服务的 Python 依赖。
 
-新应用公钥为本机 `tmp/alipay-p4/upload-this-app-public-key.txt`，商户私钥只保存在受保护目录。控制台采用 RSA2 普通公钥模式；应用公钥上传给支付宝，支付宝公钥保存到服务端用于验签。服务器已重启并输出 `Alipay configured`，当前网关为 `https://openapi-sandbox.dl.alipaydev.com/gateway.do`，等待沙箱买家实际付款、通知及退款验收。只读查单证据保存在各自忽略的 `tmp/alipay-p4/config-probe.json`。
+新应用公钥为本机 `tmp/alipay-p4/upload-this-app-public-key.txt`，商户私钥只保存在受保护目录。控制台采用 RSA2 普通公钥模式；应用公钥上传给支付宝，支付宝公钥保存到服务端用于验签。服务器已重启并输出 `Alipay configured`，当前网关为 `https://openapi-sandbox.dl.alipaydev.com/gateway.do`，沙箱付款与通知已完成本次核对，退款和账单仍待逐项证据。只读查单证据保存在各自忽略的 `tmp/alipay-p4/config-probe.json`。
+
+## 本次验收结果 2026-11-28
+
+用户确认“验收成功”。随后服务器只读核对：一笔 ¥1.00 沙箱订单状态为 `paid`，存在 `checkout`、`alipay_notice`、`paid` 各一条事件，纪念牌可售库存由 12 变为 11。付款时间按北京时间为 2026-11-28 10:36:29。通知处理在代码中先 RSA2 验签，再核对应用、商家、单号和金额，才记录事件和提交入账。
+
+本次可以登记沙箱付款、异步通知接收及入账成功。该交易 `refund_state` 为空、履约为 `pending`，没有退款或物流事件；不能把总体确认写成退款、账单、电子版下载或所有 F5 规则均已完成。没有代替用户发起退款或改变该订单。
+
+按用户顺序，现已转入 [Milestone 2 整体规划](milestone-2-plan.md)。
 
 ## 配置与逐项验收
 
